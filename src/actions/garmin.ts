@@ -1,50 +1,95 @@
 "use server";
 
-import { getGarminClient } from "@/lib/garmin-client";
+import { prisma } from "@/lib/prisma";
+import { getOrCreateUser } from "@/lib/user";
 import {
   formatDistance,
   formatDuration,
   formatPace,
   formatDate,
 } from "@/lib/format";
-import type {
-  GarminActivity,
-  FormattedActivity,
-  ActivitiesResponse,
-} from "@/types/garmin";
+import type { FormattedActivity, ActivitiesResponse } from "@/types/garmin";
 
-export async function fetchGarminActivities(): Promise<ActivitiesResponse> {
+export async function fetchGarminActivities(
+  page: number = 0,
+  limit: number = 10
+): Promise<ActivitiesResponse> {
   try {
-    const client = await getGarminClient();
-    const rawActivities =
-      (await client.getActivities(0, 5)) as unknown as GarminActivity[];
+    const user = await getOrCreateUser();
 
-    const activities: FormattedActivity[] = rawActivities.map((activity) => ({
-      id: activity.activityId,
-      name: activity.activityName,
-      date: formatDate(activity.startTimeLocal),
-      distance: formatDistance(activity.distance),
-      duration: formatDuration(activity.duration),
-      pace: formatPace(activity.averageSpeed),
-      averageHR: Math.round(activity.averageHR || 0),
-      maxHR: Math.round(activity.maxHR || 0),
-      calories: Math.round(activity.calories || 0),
-      elevationGain: Math.round(activity.elevationGain || 0),
-      cadence: Math.round(
-        activity.averageRunningCadenceInStepsPerMinute || 0
-      ),
+    const activities = await prisma.activity.findMany({
+      where: { userId: user.id },
+      orderBy: { startTimeLocal: "desc" },
+      skip: page * limit,
+      take: limit,
+    });
+
+    const formatted: FormattedActivity[] = activities.map((a) => ({
+      id: Number(a.garminActivityId),
+      name: a.activityName,
+      date: formatDate(a.startTimeLocal.toISOString()),
+      distance: formatDistance(a.distance),
+      duration: formatDuration(a.duration),
+      pace: formatPace(a.averageSpeed ?? 0),
+      averageHR: a.averageHR ?? 0,
+      maxHR: a.maxHR ?? 0,
+      calories: a.calories ?? 0,
+      elevationGain: Math.round(a.elevationGain ?? 0),
+      cadence: Math.round(a.averageCadence ?? 0),
+      aerobicTE: a.aerobicTrainingEffect ?? undefined,
+      anaerobicTE: a.anaerobicTrainingEffect ?? undefined,
+      vo2max: a.vo2max ?? undefined,
+      strideLength: a.averageStrideLength ?? undefined,
     }));
 
-    return { activities, rawActivities };
+    // rawActivities for AI analysis compatibility
+    const rawActivities = activities.map((a) => ({
+      activityId: Number(a.garminActivityId),
+      activityName: a.activityName,
+      startTimeLocal: a.startTimeLocal.toISOString(),
+      distance: a.distance,
+      duration: a.duration,
+      movingDuration: a.movingDuration ?? 0,
+      averageSpeed: a.averageSpeed ?? 0,
+      averageHR: a.averageHR ?? 0,
+      maxHR: a.maxHR ?? 0,
+      calories: a.calories ?? 0,
+      elevationGain: a.elevationGain ?? 0,
+      elevationLoss: a.elevationLoss ?? 0,
+      averageRunningCadenceInStepsPerMinute: a.averageCadence ?? 0,
+      aerobicTrainingEffect: a.aerobicTrainingEffect ?? 0,
+      anaerobicTrainingEffect: a.anaerobicTrainingEffect ?? 0,
+      vo2max: a.vo2max ?? 0,
+      activityType: { typeKey: a.activityType },
+    }));
+
+    return { activities: formatted, rawActivities };
   } catch (error) {
-    console.error("Error fetching Garmin activities:", error);
+    console.error("Error fetching activities:", error);
     return {
       activities: [],
       rawActivities: [],
       error:
         error instanceof Error
           ? error.message
-          : "Failed to fetch Garmin activities",
+          : "Failed to fetch activities",
     };
   }
+}
+
+export async function fetchActivityDetail(garminActivityId: number) {
+  const activity = await prisma.activity.findUnique({
+    where: { garminActivityId: BigInt(garminActivityId) },
+    include: {
+      splits: { orderBy: { splitNumber: "asc" } },
+      analysis: true,
+    },
+  });
+
+  if (!activity) return null;
+
+  return {
+    ...activity,
+    garminActivityId: Number(activity.garminActivityId),
+  };
 }

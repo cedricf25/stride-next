@@ -6,13 +6,23 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@google/genai": "^1.42.0",
+    "@prisma/adapter-mariadb": "^7.4.1",
+    "@prisma/client": "^7.4.1",
     "garmin-connect": "^1.6.2",
     "lucide-react": "^0.575.0",
+    "mysql2": "^3.17.4",
     "next": "16.1.6",
+    "prisma": "^7.4.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
@@ -21,9 +31,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

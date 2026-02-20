@@ -12,6 +12,9 @@ export interface GarminActivity {
   elevationGain: number;
   elevationLoss: number;
   averageRunningCadenceInStepsPerMinute: number;
+  aerobicTrainingEffect: number;
+  anaerobicTrainingEffect: number;
+  vo2max: number;
   activityType: {
     typeKey: string;
   };
@@ -29,6 +32,10 @@ export interface FormattedActivity {
   calories: number;
   elevationGain: number;
   cadence: number;
+  aerobicTE?: number;
+  anaerobicTE?: number;
+  vo2max?: number;
+  strideLength?: number;
 }
 
 export interface ActivitiesResponse {

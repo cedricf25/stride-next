@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id              String   @id @default(cuid())
+  garminUsername   String   @unique
+  displayName     String?
+  vo2max          Float?
+  weight          Float?
+  height          Float?
+  restingHR       Int?
+  maxHR           Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  activities       Activity[]
+  sleepRecords     SleepRecord[]
+  healthMetrics    HealthMetric[]
+  trainingPlans    TrainingPlan[]
+  racePredictions  RacePrediction[]
+}
+
+model Activity {
+  id                      String   @id @default(cuid())
+  garminActivityId        BigInt   @unique
+  userId                  String
+  user                    User     @relation(fields: [userId], references: [id])
+
+  activityName            String
+  activityType            String
+  startTimeLocal          DateTime
+  startTimeGMT            DateTime?
+
+  // Distance & durée
+  distance                Float
+  duration                Float
+  movingDuration          Float?
+  elapsedDuration         Float?
+
+  // Allure & vitesse
+  averageSpeed            Float?
+  maxSpeed                Float?
+
+  // Fréquence cardiaque
+  averageHR               Int?
+  maxHR                   Int?
+
+  // Calories
+  calories                Int?
+
+  // Élévation
+  elevationGain           Float?
+  elevationLoss           Float?
+  minElevation            Float?
+  maxElevation            Float?
+
+  // Cadence & dynamique de course
+  averageCadence          Float?
+  maxCadence              Float?
+  averageStrideLength     Float?
+  averageGCT              Float?     // Ground Contact Time (ms)
+  averageVerticalOscillation Float?  // (cm)
+  averageVerticalRatio    Float?     // (%)
+
+  // Training metrics
+  aerobicTrainingEffect   Float?
+  anaerobicTrainingEffect Float?
+  trainingStressScore     Float?     // TSS
+  intensityFactor         Float?
+  vo2max                  Float?
+
+  // Conditions
+  avgTemperature          Float?
+  startLatitude           Float?
+  startLongitude          Float?
+  locationName            String?
+
+  // Metadata
+  description             String?    @db.Text
+
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+
+  splits                  ActivitySplit[]
+  analysis                ActivityAnalysis?
+
+  @@index([userId])
+  @@index([startTimeLocal])
+}
+
+model ActivitySplit {
+  id              String   @id @default(cuid())
+  activityId      String
+  activity        Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  splitNumber     Int
+  splitType       String   @default("km") // "km" ou "lap"
+  distance        Float
+  duration        Float
+  averageSpeed    Float?
+  averageHR       Int?
+  maxHR           Int?
+  averageCadence  Float?
+  elevationGain   Float?
+  elevationLoss   Float?
+  averageGCT      Float?
+
+  @@unique([activityId, splitNumber, splitType])
+  @@index([activityId])
+}
+
+model ActivityAnalysis {
+  id          String   @id @default(cuid())
+  activityId  String   @unique
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  analysis    String   @db.LongText
+  model       String   @default("gemini-2.0-flash")
+  createdAt   DateTime @default(now())
+
+  @@index([activityId])
+}
+
+model SleepRecord {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+
+  calendarDate        DateTime @db.Date
+  sleepStartTimestamp DateTime?
+  sleepEndTimestamp   DateTime?
+
+  totalSleepSeconds   Int?
+  deepSleepSeconds    Int?
+  lightSleepSeconds   Int?
+  remSleepSeconds     Int?
+  awakeSleepSeconds   Int?
+
+  sleepScore          Int?
+  sleepQualifier      String?
+
+  avgOvernightHRV     Float?
+  restingHeartRate    Int?
+  avgSleepStress      Float?
+  bodyBatteryChange   Int?
+  startBodyBattery    Int?
+  endBodyBattery      Int?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, calendarDate])
+  @@index([userId])
+  @@index([calendarDate])
+}
+
+model HealthMetric {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+
+  calendarDate        DateTime @db.Date
+
+  restingHeartRate    Int?
+  maxHeartRate        Int?
+  minHeartRate        Int?
+
+  weight              Float?
+  bmi                 Float?
+  bodyFatPercentage   Float?
+  muscleMass          Float?
+
+  totalSteps          Int?
+  totalDistance        Float?
+  activeCalories      Int?
+  totalCalories       Int?
+
+  stressLevel         Int?
+  bodyBattery         Int?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, calendarDate])
+  @@index([userId])
+  @@index([calendarDate])
+}
+
+model TrainingPlan {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+
+  name                String
+  raceType            String   // "10km", "semi-marathon", "marathon", "trail"
+  raceDate            DateTime? @db.Date
+  startDate           DateTime? @db.Date
+  targetDistance      Float?   // km (pour trail)
+  targetElevation     Float?   // D+ (pour trail)
+  targetTime          String?  // objectif chrono
+  daysPerWeek         Int
+  longRunDay          String   // "lundi" → "dimanche"
+  status              String   @default("active") // "active", "completed", "archived"
+  goalProbability     Int?
+  goalAssessment      String?  @db.Text
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  weeks               TrainingWeek[]
+
+  @@index([userId])
+}
+
+model TrainingWeek {
+  id              String   @id @default(cuid())
+  planId          String
+  plan            TrainingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  weekNumber      Int
+  theme           String   // "Base", "Développement", "Affûtage", etc.
+  totalVolume     Float?   // km total prévu
+
+  @@unique([planId, weekNumber])
+  @@index([planId])
+
+  sessions        TrainingSession[]
+}
+
+model TrainingSession {
+  id              String   @id @default(cuid())
+  weekId          String
+  week            TrainingWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+
+  dayOfWeek       String   // "lundi" → "dimanche"
+  sessionType     String   // "easy", "tempo", "interval", "long_run", "recovery", "rest"
+  title           String
+  description     String   @db.Text
+  distance        Float?   // km
+  duration        Int?     // minutes
+  targetPace      String?  // ex: "5:30 /km"
+  targetHRZone    String?  // ex: "Z2", "Z3-Z4"
+  intensity       String   @default("moderate") // "low", "moderate", "high", "very_high"
+  completed       Boolean  @default(false)
+
+  @@index([weekId])
+}
+
+model RacePrediction {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  distance        String   // "5km", "10km", "semi-marathon", "marathon", "trail"
+  label           String
+  predictedTime   String
+  predictedPace   String
+  confidence      Int      // 0-100
+  comment         String   @db.Text
+  summary         String   @db.Text
+  generatedAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([generatedAt])
+}

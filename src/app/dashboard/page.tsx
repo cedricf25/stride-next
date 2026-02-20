@@ -1,24 +1,17 @@
-import { Activity, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { fetchGarminActivities } from "@/actions/garmin";
 import ActivityList from "@/components/ActivityList";
 import AiAnalysis from "@/components/AiAnalysis";
-import RefreshButton from "@/components/RefreshButton";
+import HealthSummaryWidgets from "@/components/health/HealthSummaryWidgets";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const { activities, rawActivities, error } = await fetchGarminActivities();
+  const { activities, error } = await fetchGarminActivities();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      {/* Header */}
-      <header className="mb-8 flex items-center justify-between">
-        <h1 className="flex items-center gap-3 text-2xl font-bold text-gray-900">
-          <Activity className="h-7 w-7 text-blue-600" />
-          Stride Dashboard
-        </h1>
-        <RefreshButton />
-      </header>
+    <div className="mx-auto max-w-6xl px-6 py-8">
+      <h1 className="mb-6 text-2xl font-bold text-gray-900">Dashboard</h1>
 
       {/* Error banner */}
       {error && (
@@ -28,16 +21,19 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* Health Summary */}
+      <HealthSummaryWidgets />
+
       {/* Activities */}
-      <section>
+      <section className="mt-8">
         <h2 className="mb-4 text-xl font-bold text-gray-900">
           Dernières courses
         </h2>
         <ActivityList activities={activities} />
       </section>
 
-      {/* AI Analysis */}
-      <AiAnalysis rawActivities={rawActivities} />
+      {/* AI Coaching */}
+      <AiAnalysis />
     </div>
   );
 }
