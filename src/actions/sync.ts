@@ -163,6 +163,15 @@ export async function syncSleepData(days: number = 14) {
       const dto = sleep.dailySleepDTO;
       const calendarDate = new Date(dateStr + "T00:00:00");
 
+      // Body battery — top-level sleep, pas dans dailySleepDTO
+      const bodyBatteryChange: number | null = sleep.bodyBatteryChange ?? null;
+      let startBodyBattery: number | null = null;
+      let endBodyBattery: number | null = null;
+      if (Array.isArray(sleep.sleepBodyBattery) && sleep.sleepBodyBattery.length > 0) {
+        startBodyBattery = sleep.sleepBodyBattery[0]?.value ?? null;
+        endBodyBattery = sleep.sleepBodyBattery[sleep.sleepBodyBattery.length - 1]?.value ?? null;
+      }
+
       await prisma.sleepRecord.upsert({
         where: {
           userId_calendarDate: {
@@ -181,9 +190,9 @@ export async function syncSleepData(days: number = 14) {
           avgOvernightHRV: sleep.restingHeartRate ?? null,
           restingHeartRate: dto.averageHeartRate ?? null,
           avgSleepStress: dto.averageStressLevel ?? null,
-          bodyBatteryChange: dto.bodyBatteryChange ?? null,
-          startBodyBattery: dto.startBodyBattery ?? null,
-          endBodyBattery: dto.endBodyBattery ?? null,
+          bodyBatteryChange,
+          startBodyBattery,
+          endBodyBattery,
         },
         create: {
           userId: user.id,
@@ -204,9 +213,9 @@ export async function syncSleepData(days: number = 14) {
           avgOvernightHRV: sleep.restingHeartRate ?? null,
           restingHeartRate: dto.averageHeartRate ?? null,
           avgSleepStress: dto.averageStressLevel ?? null,
-          bodyBatteryChange: dto.bodyBatteryChange ?? null,
-          startBodyBattery: dto.startBodyBattery ?? null,
-          endBodyBattery: dto.endBodyBattery ?? null,
+          bodyBatteryChange,
+          startBodyBattery,
+          endBodyBattery,
         },
       });
       synced++;
@@ -256,18 +265,14 @@ export async function syncHealthMetrics(days: number = 14) {
           const w = weightData.dateWeightList[0];
           weight = w.weight ? w.weight / 1000 : null; // g → kg
           bmi = w.bmi ?? null;
-          bodyFat = w.bodyFatPercentage ?? null;
+          bodyFat = w.bodyFat ?? null;
           muscleMass = w.muscleMass ? w.muscleMass / 1000 : null; // g → kg
         }
       } catch { /* ignore */ }
 
       try {
-        const steps = (await client.getSteps(date)) as GarminRaw;
-        if (Array.isArray(steps) && steps[0]) {
-          totalSteps = steps[0].totalSteps ?? null;
-        } else if (steps?.totalSteps) {
-          totalSteps = steps.totalSteps;
-        }
+        const steps = await client.getSteps(date);
+        totalSteps = typeof steps === "number" ? steps : null;
       } catch { /* ignore */ }
 
       // Only upsert if we have at least some data
