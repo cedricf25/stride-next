@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import TrainingSessionCard from "./TrainingSessionCard";
 
@@ -26,10 +26,36 @@ interface Props {
     totalVolume: number | null;
     sessions: Session[];
   };
+  planStartDate?: Date | null;
 }
 
-export default function TrainingWeekCard({ week }: Props) {
+function formatWeekDates(planStartDate: Date, weekNumber: number): string {
+  const start = new Date(planStartDate);
+  start.setDate(start.getDate() + (weekNumber - 1) * 7);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+
+  const fmtDay = (d: Date) =>
+    d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+
+  return `${fmtDay(start)} – ${fmtDay(end)}`;
+}
+
+export default function TrainingWeekCard({ week, planStartDate }: Props) {
+  const storageKey = `week-open-${week.id}`;
   const [open, setOpen] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved !== null) setOpen(saved === "true");
+    setHydrated(true);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (hydrated) localStorage.setItem(storageKey, String(open));
+  }, [open, hydrated, storageKey]);
+
   const completed = week.sessions.filter((s) => s.completed).length;
   const total = week.sessions.length;
 
@@ -49,6 +75,11 @@ export default function TrainingWeekCard({ week }: Props) {
             <span className="font-semibold text-gray-900">
               Semaine {week.weekNumber}
             </span>
+            {planStartDate && (
+              <span className="ml-2 text-sm text-gray-400">
+                {formatWeekDates(planStartDate, week.weekNumber)}
+              </span>
+            )}
             <span className="ml-2 text-sm text-gray-500">{week.theme}</span>
           </div>
         </div>

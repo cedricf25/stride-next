@@ -52,7 +52,7 @@ export default async function TrainingPlanPage({
 
       <div className="mt-8 space-y-4">
         {plan.weeks.map((week) => (
-          <TrainingWeekCard key={week.id} week={week} />
+          <TrainingWeekCard key={week.id} week={week} planStartDate={plan.startDate} />
         ))}
       </div>
     </div>
