@@ -1,7 +1,8 @@
 "use server";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/user";
+import { getAuthenticatedUser } from "@/lib/user";
 import {
   formatDistance,
   formatDuration,
@@ -49,7 +50,7 @@ export async function fetchGarminActivities(
   filters?: ActivityFilters
 ): Promise<ActivitiesResponse> {
   try {
-    const user = await getOrCreateUser();
+    const user = await getAuthenticatedUser();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { userId: user.id };
@@ -117,6 +118,7 @@ export async function fetchGarminActivities(
 
     return { activities: formatted, rawActivities };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("Error fetching activities:", error);
     return {
       activities: [],

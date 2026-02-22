@@ -1,10 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/user";
+import { getAuthenticatedUser } from "@/lib/user";
 
 export async function fetchLatestHealthSummary() {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
 
   const [latestSleep, latestHealth] = await Promise.all([
     prisma.sleepRecord.findFirst({
@@ -38,7 +38,7 @@ export async function fetchLatestHealthSummary() {
 }
 
 export async function fetchSleepHistory(days: number = 30) {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
 
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -53,7 +53,7 @@ export async function fetchSleepHistory(days: number = 30) {
 }
 
 export async function fetchHealthHistory(days: number = 30) {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
 
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -87,7 +87,7 @@ export interface FatigueTrendData {
 export async function fetchFatigueTrend(
   days: number = 14
 ): Promise<FatigueTrendData> {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
   const since = new Date();
   since.setDate(since.getDate() - days);
 

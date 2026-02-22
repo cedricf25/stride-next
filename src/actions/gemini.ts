@@ -1,8 +1,9 @@
 "use server";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/user";
+import { getAuthenticatedUser } from "@/lib/user";
 import type { AnalysisResponse } from "@/types/garmin";
 
 const ACTIVITY_SYSTEM_PROMPT = `Tu es un coach expert en course à pied. Analyse en détail cette séance de course à pied.
@@ -42,7 +43,7 @@ Réponds en français.`;
 
 export async function analyzeGlobalCoaching(): Promise<AnalysisResponse> {
   try {
-    const user = await getOrCreateUser();
+    const user = await getAuthenticatedUser();
     const ai = getAI();
 
     const now = new Date();
@@ -174,6 +175,7 @@ ${planContext ? `## Plan d'entraînement actif\n${JSON.stringify(planContext, nu
     const analysis = response.text ?? "";
     return { analysis };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("Error in global coaching:", error);
     return {
       analysis: "",
@@ -305,6 +307,7 @@ ${JSON.stringify(context, null, 2)}`;
 
     return { analysis: analysisText };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("Error analyzing activity:", error);
     return {
       analysis: "",

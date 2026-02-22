@@ -1,14 +1,15 @@
 "use server";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { prisma } from "@/lib/prisma";
 import { getGarminClient } from "@/lib/garmin-client";
-import { getOrCreateUser } from "@/lib/user";
+import { getAuthenticatedUser } from "@/lib/user";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GarminRaw = any;
 
 export async function syncActivities(count: number = 20) {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
   const client = await getGarminClient();
 
   const rawActivities = (await client.getActivities(0, count)) as GarminRaw[];
@@ -145,7 +146,7 @@ export async function syncActivities(count: number = 20) {
 }
 
 export async function syncSleepData(days: number = 14) {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
   const client = await getGarminClient();
 
   let synced = 0;
@@ -228,7 +229,7 @@ export async function syncSleepData(days: number = 14) {
 }
 
 export async function syncHealthMetrics(days: number = 14) {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
   const client = await getGarminClient();
 
   let synced = 0;
@@ -318,7 +319,7 @@ export async function syncHealthMetrics(days: number = 14) {
 }
 
 export async function syncUserProfile() {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
   const client = await getGarminClient();
 
   try {
@@ -354,35 +355,40 @@ export async function syncAll() {
   try {
     results.profile = await syncUserProfile();
   } catch (e) {
+    if (isRedirectError(e)) throw e;
     console.error("syncUserProfile failed:", e);
   }
 
   try {
     results.activities = await syncActivities(20);
   } catch (e) {
+    if (isRedirectError(e)) throw e;
     console.error("syncActivities failed:", e);
   }
 
   try {
     results.sleep = await syncSleepData(14);
   } catch (e) {
+    if (isRedirectError(e)) throw e;
     console.error("syncSleepData failed:", e);
   }
 
   try {
     results.health = await syncHealthMetrics(14);
   } catch (e) {
+    if (isRedirectError(e)) throw e;
     console.error("syncHealthMetrics failed:", e);
   }
 
   // Update last sync timestamp
   try {
-    const user = await getOrCreateUser();
+    const user = await getAuthenticatedUser();
     await prisma.user.update({
       where: { id: user.id },
       data: { lastSyncAt: new Date() },
     });
   } catch (e) {
+    if (isRedirectError(e)) throw e;
     console.error("Failed to update lastSyncAt:", e);
   }
 

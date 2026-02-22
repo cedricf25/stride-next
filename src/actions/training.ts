@@ -2,7 +2,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/user";
+import { getAuthenticatedUser } from "@/lib/user";
 
 export interface TrainingPlanInput {
   raceType: string;
@@ -54,7 +54,7 @@ Place la sortie longue le jour demandé.
 Inclus des jours de repos.`;
 
 export async function generateTrainingPlan(input: TrainingPlanInput) {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY must be set");
 
@@ -255,7 +255,7 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
 }
 
 export async function fetchTrainingPlans() {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
 
   return prisma.trainingPlan.findMany({
     where: { userId: user.id },
@@ -294,7 +294,7 @@ export async function toggleSessionCompleted(sessionId: string) {
 }
 
 export async function fetchPaceZones() {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
 
   // VO2max depuis le profil ou la dernière activité
   let vo2max = user.vo2max;

@@ -10,16 +10,21 @@ async function main() {
     throw new Error("GARMIN_USERNAME must be set");
   }
 
+  const email = garminUsername;
+  const name = garminUsername.split("@")[0];
+
   const user = await prisma.user.upsert({
-    where: { garminUsername },
-    update: {},
+    where: { email },
+    update: { garminUsername },
     create: {
+      email,
+      name,
       garminUsername,
-      displayName: garminUsername.split("@")[0],
+      displayName: name,
     },
   });
 
-  console.log(`User seeded: ${user.displayName} (${user.id})`);
+  console.log(`User seeded: ${user.name ?? user.displayName} (${user.id})`);
 }
 
 main()

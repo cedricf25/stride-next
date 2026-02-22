@@ -2,7 +2,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/user";
+import { getAuthenticatedUser } from "@/lib/user";
 
 export interface RacePredictionData {
   distance: string;
@@ -50,7 +50,7 @@ Règles :
 
 /** Charge les prédictions depuis la DB (sans appel IA) */
 export async function fetchSavedPredictions(): Promise<PredictionsResult | null> {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
 
   const rows = await prisma.racePrediction.findMany({
     where: { userId: user.id },
@@ -82,7 +82,7 @@ export async function fetchSavedPredictions(): Promise<PredictionsResult | null>
 
 /** Génère de nouvelles prédictions via Gemini et les enregistre en DB */
 export async function generatePredictions(): Promise<PredictionsResult> {
-  const user = await getOrCreateUser();
+  const user = await getAuthenticatedUser();
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY must be set");
 

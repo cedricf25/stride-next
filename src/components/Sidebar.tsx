@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, Heart, Target, Timer, List, Settings } from "lucide-react";
 import SyncButton from "./SyncButton";
+import UserMenu from "./UserMenu";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Activity },
@@ -63,6 +64,11 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
           <Settings className="h-5 w-5" />
           Paramètres
         </Link>
+      </div>
+
+      {/* User menu */}
+      <div className="border-t border-[var(--border-default)]">
+        <UserMenu />
       </div>
 
       {/* Sync button */}

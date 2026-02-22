@@ -1,19 +1,26 @@
 "use server";
 
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function getOrCreateUser() {
-  const garminUsername = process.env.GARMIN_USERNAME;
-  if (!garminUsername) {
-    throw new Error("GARMIN_USERNAME must be set");
+export async function getAuthenticatedUser() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    redirect("/login");
   }
 
-  return prisma.user.upsert({
-    where: { garminUsername },
-    update: {},
-    create: {
-      garminUsername,
-      displayName: garminUsername.split("@")[0],
-    },
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
   });
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return user;
 }
