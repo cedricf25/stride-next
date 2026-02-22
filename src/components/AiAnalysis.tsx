@@ -3,17 +3,7 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { analyzeGlobalCoaching } from "@/actions/gemini";
-
-function renderMarkdown(text: string): string {
-  return text
-    .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-5 mb-2">$1</h2>')
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.*?)\*/g, "<em>$1</em>")
-    .replace(/^- (.*$)/gm, '<li class="ml-4 list-disc">$1</li>')
-    .replace(/^(\d+)\. (.*$)/gm, '<li class="ml-4 list-decimal">$2</li>')
-    .replace(/\n\n/g, '<p class="mb-3"></p>');
-}
+import MarkdownContent from "@/components/MarkdownContent";
 
 export default function AiAnalysis() {
   const [analysis, setAnalysis] = useState<string>("");
@@ -53,13 +43,18 @@ export default function AiAnalysis() {
       </div>
 
       {loading && (
-        <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-6">
-          <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
-          <div className="h-4 w-full animate-pulse rounded bg-gray-200" />
-          <div className="h-4 w-5/6 animate-pulse rounded bg-gray-200" />
-          <div className="h-4 w-2/3 animate-pulse rounded bg-gray-200" />
-          <div className="h-4 w-full animate-pulse rounded bg-gray-200" />
-          <div className="h-4 w-4/5 animate-pulse rounded bg-gray-200" />
+        <div className="space-y-3">
+          <div className="rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 p-5">
+            <div className="h-4 w-2/3 animate-pulse rounded-full bg-purple-200/60" />
+          </div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl border-l-4 border-l-gray-200 bg-white shadow-sm p-5 space-y-3">
+              <div className="h-4 w-1/3 animate-pulse rounded-full bg-gray-200" />
+              <div className="h-3 w-full animate-pulse rounded-full bg-gray-100" />
+              <div className="h-3 w-5/6 animate-pulse rounded-full bg-gray-100" />
+              <div className="h-3 w-4/5 animate-pulse rounded-full bg-gray-100" />
+            </div>
+          ))}
         </div>
       )}
 
@@ -69,12 +64,7 @@ export default function AiAnalysis() {
         </div>
       )}
 
-      {analysis && (
-        <div
-          className="prose prose-sm max-w-none rounded-2xl border border-gray-200 bg-white p-6"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(analysis) }}
-        />
-      )}
+      {analysis && <MarkdownContent content={analysis} />}
     </section>
   );
 }
