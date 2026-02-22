@@ -8,18 +8,70 @@ import {
   formatPace,
   formatDate,
 } from "@/lib/format";
-import type { FormattedActivity, ActivitiesResponse } from "@/types/garmin";
+import type {
+  FormattedActivity,
+  ActivitiesResponse,
+  ActivityFilters,
+} from "@/types/garmin";
+
+function buildDateFilter(period: ActivityFilters["period"]): Date | undefined {
+  if (!period || period === "all") return undefined;
+  const now = new Date();
+  switch (period) {
+    case "7d":
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    case "30d":
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    case "90d":
+      return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    case "year":
+      return new Date(now.getFullYear(), 0, 1);
+  }
+}
+
+function buildOrderBy(filters?: ActivityFilters) {
+  const sortOrder = filters?.sortOrder ?? "desc";
+  switch (filters?.sortBy) {
+    case "distance":
+      return { distance: sortOrder as "asc" | "desc" };
+    case "pace":
+      return { averageSpeed: (sortOrder === "asc" ? "desc" : "asc") as "asc" | "desc" };
+    case "duration":
+      return { duration: sortOrder as "asc" | "desc" };
+    default:
+      return { startTimeLocal: sortOrder as "asc" | "desc" };
+  }
+}
 
 export async function fetchGarminActivities(
   page: number = 0,
-  limit: number = 10
+  limit: number = 10,
+  filters?: ActivityFilters
 ): Promise<ActivitiesResponse> {
   try {
     const user = await getOrCreateUser();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = { userId: user.id };
+
+    if (filters?.search) {
+      where.activityName = { contains: filters.search };
+    }
+
+    const dateFrom = buildDateFilter(filters?.period);
+    if (dateFrom) {
+      where.startTimeLocal = { gte: dateFrom };
+    }
+
+    if (filters?.distanceMin != null || filters?.distanceMax != null) {
+      where.distance = {};
+      if (filters.distanceMin != null) where.distance.gte = filters.distanceMin;
+      if (filters?.distanceMax != null) where.distance.lte = filters.distanceMax;
+    }
+
     const activities = await prisma.activity.findMany({
-      where: { userId: user.id },
-      orderBy: { startTimeLocal: "desc" },
+      where,
+      orderBy: buildOrderBy(filters),
       skip: page * limit,
       take: limit,
     });

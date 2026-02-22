@@ -44,6 +44,15 @@ export interface ActivitiesResponse {
   error?: string;
 }
 
+export interface ActivityFilters {
+  search?: string;
+  period?: "7d" | "30d" | "90d" | "year" | "all";
+  distanceMin?: number;
+  distanceMax?: number;
+  sortBy?: "date" | "distance" | "pace" | "duration";
+  sortOrder?: "asc" | "desc";
+}
+
 export interface AnalysisResponse {
   analysis: string;
   error?: string;
