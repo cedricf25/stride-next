@@ -18,7 +18,7 @@ function teColor(value: number): string {
 
 export default function ActivityCard({ activity }: ActivityCardProps) {
   return (
-    <Link href={`/dashboard/activity/${activity.id}`}>
+    <Link href={`/activities/${activity.id}`}>
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
         <h3 className="mb-1 text-lg font-semibold text-gray-900">
           {activity.name}

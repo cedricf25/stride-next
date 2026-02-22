@@ -28,7 +28,7 @@ export default async function TrainingPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Entraînement</h1>
         <Link
-          href="/dashboard/training/new"
+          href="/training/new"
           className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
@@ -63,7 +63,7 @@ export default async function TrainingPage() {
             );
 
             return (
-              <Link key={plan.id} href={`/dashboard/training/${plan.id}`}>
+              <Link key={plan.id} href={`/training/${plan.id}`}>
                 <div className="rounded-xl border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between">
                     <div>

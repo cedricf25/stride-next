@@ -6,11 +6,11 @@ import { Activity, Heart, Target, Timer, List } from "lucide-react";
 import SyncButton from "./SyncButton";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: Activity },
-  { href: "/dashboard/activities", label: "Activités", icon: List },
-  { href: "/dashboard/health", label: "Santé", icon: Heart },
-  { href: "/dashboard/training", label: "Entraînement", icon: Target },
-  { href: "/dashboard/predictions", label: "Prédictions", icon: Timer },
+  { href: "/", label: "Dashboard", icon: Activity },
+  { href: "/activities", label: "Activités", icon: List },
+  { href: "/health", label: "Santé", icon: Heart },
+  { href: "/training", label: "Entraînement", icon: Target },
+  { href: "/predictions", label: "Prédictions", icon: Timer },
 ];
 
 export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
@@ -29,8 +29,8 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
+            item.href === "/"
+              ? pathname === "/"
               : pathname.startsWith(item.href);
 
           return (

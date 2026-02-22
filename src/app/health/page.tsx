@@ -18,12 +18,12 @@ export default async function HealthPage() {
   const latestSleep = sleepData[sleepData.length - 1] ?? null;
 
   const cards = [
-    { href: "/dashboard/health/sleep", component: <SleepChart data={sleepData} /> },
-    { href: "/dashboard/health/hrv", component: <HrvChart data={sleepData} /> },
-    { href: "/dashboard/health/heart-rate", component: <RestingHRChart data={healthData} /> },
-    { href: "/dashboard/health/weight", component: <WeightChart data={healthData} /> },
-    { href: "/dashboard/health/steps", component: <StepsChart data={healthData} /> },
-    { href: "/dashboard/health/body-battery", component: <BodyBatteryCard data={latestSleep} /> },
+    { href: "/health/sleep", component: <SleepChart data={sleepData} /> },
+    { href: "/health/hrv", component: <HrvChart data={sleepData} /> },
+    { href: "/health/heart-rate", component: <RestingHRChart data={healthData} /> },
+    { href: "/health/weight", component: <WeightChart data={healthData} /> },
+    { href: "/health/steps", component: <StepsChart data={healthData} /> },
+    { href: "/health/body-battery", component: <BodyBatteryCard data={latestSleep} /> },
   ];
 
   return (

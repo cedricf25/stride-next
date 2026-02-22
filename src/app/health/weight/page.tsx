@@ -29,7 +29,7 @@ export default async function WeightDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <Link href="/dashboard/health" className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
+      <Link href="/health" className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
         <ArrowLeft className="h-4 w-4" /> Retour à la santé
       </Link>
 

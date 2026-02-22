@@ -13,7 +13,7 @@ export default function DeletePlanButton({ planId }: { planId: string }) {
   function handleDelete() {
     startTransition(async () => {
       await deleteTrainingPlan(planId);
-      router.push("/dashboard/training");
+      router.push("/training");
     });
   }
 

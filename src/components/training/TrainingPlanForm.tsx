@@ -48,7 +48,7 @@ export default function TrainingPlanForm() {
         longRunDay: state.longRunDay,
       });
 
-      router.push(`/dashboard/training/${result.planId}`);
+      router.push(`/training/${result.planId}`);
     } catch (err) {
       dispatch({
         type: "SET_ERROR",
