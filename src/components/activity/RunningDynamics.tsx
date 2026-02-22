@@ -1,3 +1,6 @@
+import Card from "@/components/shared/Card";
+import EmptyState from "@/components/shared/EmptyState";
+
 interface Props {
   activity: {
     averageCadence: number | null;
@@ -41,15 +44,12 @@ export default function RunningDynamics({ activity }: Props) {
 
   if (!hasData) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">Dynamique de course</h3>
-        <p className="text-sm text-gray-500">Aucune donnée disponible</p>
-      </div>
+      <EmptyState title="Dynamique de course" message="Aucune donnée disponible" />
     );
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
+    <Card>
       <h3 className="mb-4 text-lg font-semibold text-gray-900">Dynamique de course</h3>
       <div className="space-y-4">
         {activity.averageCadence != null && (
@@ -98,6 +98,6 @@ export default function RunningDynamics({ activity }: Props) {
           />
         )}
       </div>
-    </div>
+    </Card>
   );
 }

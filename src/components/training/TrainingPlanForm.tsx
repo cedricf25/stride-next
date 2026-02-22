@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useReducer } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { generateTrainingPlan } from "@/actions/training";
+import {
+  trainingPlanFormReducer,
+  initialState,
+} from "@/reducers/trainingPlanFormReducer";
 
 const raceTypes = [
   { value: "10km", label: "10 km" },
@@ -26,41 +30,30 @@ const weekDays = [
 
 export default function TrainingPlanForm() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const [raceType, setRaceType] = useState("semi-marathon");
-  const [raceDate, setRaceDate] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [targetDistance, setTargetDistance] = useState("");
-  const [targetElevation, setTargetElevation] = useState("");
-  const [targetTime, setTargetTime] = useState("");
-  const [daysPerWeek, setDaysPerWeek] = useState(4);
-  const [longRunDay, setLongRunDay] = useState("dimanche");
+  const [state, dispatch] = useReducer(trainingPlanFormReducer, initialState);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    dispatch({ type: "SET_LOADING", value: true });
 
     try {
       const result = await generateTrainingPlan({
-        raceType,
-        raceDate: raceDate || undefined,
-        startDate: startDate || undefined,
-        targetDistance: targetDistance ? Number(targetDistance) : undefined,
-        targetElevation: targetElevation ? Number(targetElevation) : undefined,
-        targetTime: targetTime || undefined,
-        daysPerWeek,
-        longRunDay,
+        raceType: state.raceType,
+        raceDate: state.raceDate || undefined,
+        startDate: state.startDate || undefined,
+        targetDistance: state.targetDistance ? Number(state.targetDistance) : undefined,
+        targetElevation: state.targetElevation ? Number(state.targetElevation) : undefined,
+        targetTime: state.targetTime || undefined,
+        daysPerWeek: state.daysPerWeek,
+        longRunDay: state.longRunDay,
       });
 
       router.push(`/dashboard/training/${result.planId}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Erreur lors de la génération"
-      );
-      setLoading(false);
+      dispatch({
+        type: "SET_ERROR",
+        value: err instanceof Error ? err.message : "Erreur lors de la génération",
+      });
     }
   }
 
@@ -72,8 +65,8 @@ export default function TrainingPlanForm() {
           Type de course
         </label>
         <select
-          value={raceType}
-          onChange={(e) => setRaceType(e.target.value)}
+          value={state.raceType}
+          onChange={(e) => dispatch({ type: "SET_RACE_TYPE", value: e.target.value })}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         >
           {raceTypes.map((t) => (
@@ -85,7 +78,7 @@ export default function TrainingPlanForm() {
       </div>
 
       {/* Trail-specific fields */}
-      {raceType === "trail" && (
+      {state.raceType === "trail" && (
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -93,8 +86,8 @@ export default function TrainingPlanForm() {
             </label>
             <input
               type="number"
-              value={targetDistance}
-              onChange={(e) => setTargetDistance(e.target.value)}
+              value={state.targetDistance}
+              onChange={(e) => dispatch({ type: "SET_FIELD", field: "targetDistance", value: e.target.value })}
               placeholder="ex: 42"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
@@ -105,8 +98,8 @@ export default function TrainingPlanForm() {
             </label>
             <input
               type="number"
-              value={targetElevation}
-              onChange={(e) => setTargetElevation(e.target.value)}
+              value={state.targetElevation}
+              onChange={(e) => dispatch({ type: "SET_FIELD", field: "targetElevation", value: e.target.value })}
               placeholder="ex: 2000"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
@@ -121,8 +114,8 @@ export default function TrainingPlanForm() {
         </label>
         <input
           type="date"
-          value={raceDate}
-          onChange={(e) => setRaceDate(e.target.value)}
+          value={state.raceDate}
+          onChange={(e) => dispatch({ type: "SET_FIELD", field: "raceDate", value: e.target.value })}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
       </div>
@@ -135,8 +128,8 @@ export default function TrainingPlanForm() {
         </label>
         <input
           type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
+          value={state.startDate}
+          onChange={(e) => dispatch({ type: "SET_FIELD", field: "startDate", value: e.target.value })}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-400">
@@ -152,8 +145,8 @@ export default function TrainingPlanForm() {
         </label>
         <input
           type="text"
-          value={targetTime}
-          onChange={(e) => setTargetTime(e.target.value)}
+          value={state.targetTime}
+          onChange={(e) => dispatch({ type: "SET_FIELD", field: "targetTime", value: e.target.value })}
           placeholder="ex: 1h45"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
@@ -169,9 +162,9 @@ export default function TrainingPlanForm() {
             <button
               key={d}
               type="button"
-              onClick={() => setDaysPerWeek(d)}
+              onClick={() => dispatch({ type: "SET_FIELD", field: "daysPerWeek", value: d })}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                daysPerWeek === d
+                state.daysPerWeek === d
                   ? "bg-blue-600 text-white"
                   : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
               }`}
@@ -188,8 +181,8 @@ export default function TrainingPlanForm() {
           Jour de sortie longue
         </label>
         <select
-          value={longRunDay}
-          onChange={(e) => setLongRunDay(e.target.value)}
+          value={state.longRunDay}
+          onChange={(e) => dispatch({ type: "SET_FIELD", field: "longRunDay", value: e.target.value })}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm capitalize focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         >
           {weekDays.map((d) => (
@@ -200,18 +193,18 @@ export default function TrainingPlanForm() {
         </select>
       </div>
 
-      {error && (
+      {state.error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {error}
+          {state.error}
         </div>
       )}
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={state.loading}
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
       >
-        {loading ? (
+        {state.loading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Génération du plan en cours...

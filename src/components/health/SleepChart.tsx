@@ -1,4 +1,7 @@
 import { formatShortDate } from "@/lib/chart-utils";
+import EmptyState from "@/components/shared/EmptyState";
+import ChartContainer from "@/components/shared/ChartContainer";
+import ChartLegend from "@/components/shared/ChartLegend";
 
 interface SleepData {
   calendarDate: Date;
@@ -16,10 +19,7 @@ interface Props {
 export default function SleepChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">Sommeil</h3>
-        <p className="text-sm text-gray-500">Aucune donnée de sommeil</p>
-      </div>
+      <EmptyState title="Sommeil" message="Aucune donnée de sommeil" />
     );
   }
 
@@ -43,8 +43,19 @@ export default function SleepChart({ data }: Props) {
   const scale = maxSeconds > 0 ? chartH / maxSeconds : 1;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">Sommeil</h3>
+    <ChartContainer
+      title="Sommeil"
+      legend={
+        <ChartLegend
+          items={[
+            { label: "Profond", color: "bg-[#4338ca]" },
+            { label: "Léger", color: "bg-[#818cf8]" },
+            { label: "REM", color: "bg-[#c4b5fd]" },
+            { label: "Éveillé", color: "bg-[#fbbf24]" },
+          ]}
+        />
+      }
+    >
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         {data.map((d, i) => {
           const x = pad.left + i * gap + gap / 2 - barW / 2;
@@ -75,12 +86,6 @@ export default function SleepChart({ data }: Props) {
           );
         })}
       </svg>
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#4338ca]" /> Profond</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#818cf8]" /> Léger</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#c4b5fd]" /> REM</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#fbbf24]" /> Éveillé</span>
-      </div>
-    </div>
+    </ChartContainer>
   );
 }

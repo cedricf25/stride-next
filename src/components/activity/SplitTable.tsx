@@ -1,4 +1,5 @@
 import { formatPace } from "@/lib/format";
+import Card from "@/components/shared/Card";
 
 interface Split {
   splitNumber: number;
@@ -24,7 +25,7 @@ export default function SplitTable({ splits }: Props) {
   const minSpeed = Math.min(...speeds);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <Card padding="none">
       <h3 className="border-b border-gray-200 px-6 py-4 text-lg font-semibold text-gray-900">
         Splits par km
       </h3>
@@ -79,6 +80,6 @@ export default function SplitTable({ splits }: Props) {
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }

@@ -1,5 +1,6 @@
 import { Target, Calendar, CalendarCheck, Clock } from "lucide-react";
 import GoalProbabilityBadge from "./GoalProbabilityBadge";
+import ProgressBar from "@/components/shared/ProgressBar";
 
 interface Props {
   plan: {
@@ -83,12 +84,7 @@ export default function TrainingPlanHeader({ plan }: Props) {
       {/* Progress */}
       <div className="mt-4 flex items-center gap-4">
         <div className="flex-1">
-          <div className="h-2 w-full rounded-full bg-gray-100">
-            <div
-              className="h-2 rounded-full bg-blue-500 transition-all"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+          <ProgressBar value={progress} color="bg-blue-500" height="md" />
         </div>
         <span className="text-sm font-medium text-gray-700">
           {completedSessions}/{totalSessions} séances ({progress}%)

@@ -1,4 +1,6 @@
 import { formatShortDate, polylinePath, scaleLinear } from "@/lib/chart-utils";
+import EmptyState from "@/components/shared/EmptyState";
+import ChartContainer from "@/components/shared/ChartContainer";
 
 interface SleepData {
   calendarDate: Date;
@@ -14,10 +16,7 @@ export default function HrvChart({ data }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">HRV nocturne</h3>
-        <p className="text-sm text-gray-500">Aucune donnée HRV</p>
-      </div>
+      <EmptyState title="HRV nocturne" message="Aucune donnée HRV" />
     );
   }
 
@@ -43,8 +42,7 @@ export default function HrvChart({ data }: Props) {
   const avgY = yScale(avg);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">HRV nocturne</h3>
+    <ChartContainer title="HRV nocturne">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         {/* Grid */}
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
@@ -98,6 +96,6 @@ export default function HrvChart({ data }: Props) {
           ) : null
         )}
       </svg>
-    </div>
+    </ChartContainer>
   );
 }

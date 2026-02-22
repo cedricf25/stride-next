@@ -1,5 +1,6 @@
 import { Moon, Heart, Footprints, Scale } from "lucide-react";
 import { fetchLatestHealthSummary } from "@/actions/health";
+import StatItem from "@/components/shared/StatItem";
 
 export default async function HealthSummaryWidgets() {
   const { sleep, health } = await fetchLatestHealthSummary();
@@ -34,17 +35,14 @@ export default async function HealthSummaryWidgets() {
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {widgets.map((w) => (
-        <div
+        <StatItem
           key={w.label}
-          className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3"
-        >
-          <div className="rounded-lg bg-gray-50 p-2">{w.icon}</div>
-          <div>
-            <p className="text-xs text-gray-500">{w.label}</p>
-            <p className="text-lg font-semibold text-gray-900">{w.value}</p>
-            {w.sub && <p className="text-xs text-gray-400">{w.sub}</p>}
-          </div>
-        </div>
+          icon={w.icon}
+          label={w.label}
+          value={w.value}
+          sub={w.sub}
+          variant="widget"
+        />
       ))}
     </div>
   );

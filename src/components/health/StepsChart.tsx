@@ -1,4 +1,7 @@
 import { formatShortDate, scaleLinear } from "@/lib/chart-utils";
+import EmptyState from "@/components/shared/EmptyState";
+import ChartContainer from "@/components/shared/ChartContainer";
+import ChartLegend from "@/components/shared/ChartLegend";
 
 interface HealthData {
   calendarDate: Date;
@@ -14,10 +17,7 @@ export default function StepsChart({ data }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">Pas quotidiens</h3>
-        <p className="text-sm text-gray-500">Aucune donnée</p>
-      </div>
+      <EmptyState title="Pas quotidiens" message="Aucune donnée" />
     );
   }
 
@@ -37,8 +37,19 @@ export default function StepsChart({ data }: Props) {
   const avgY = pad.top + chartH - yScale(avg);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">Pas quotidiens</h3>
+    <ChartContainer
+      title="Pas quotidiens"
+      legend={
+        <ChartLegend
+          className="mt-2 flex gap-4 text-xs text-gray-500"
+          items={[
+            { label: "10 000+", color: "bg-green-500" },
+            { label: "7 000+", color: "bg-blue-500" },
+            { label: "< 7 000", color: "bg-gray-400" },
+          ]}
+        />
+      }
+    >
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         {/* Average line */}
         <line
@@ -79,11 +90,6 @@ export default function StepsChart({ data }: Props) {
           );
         })}
       </svg>
-      <div className="mt-2 flex gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-green-500" /> 10 000+</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-blue-500" /> 7 000+</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-gray-400" /> &lt; 7 000</span>
-      </div>
-    </div>
+    </ChartContainer>
   );
 }

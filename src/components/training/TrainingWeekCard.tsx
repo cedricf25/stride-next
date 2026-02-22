@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import TrainingSessionCard from "./TrainingSessionCard";
+import Card from "@/components/shared/Card";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 interface Session {
   id: string;
@@ -42,25 +43,13 @@ function formatWeekDates(planStartDate: Date, weekNumber: number): string {
 }
 
 export default function TrainingWeekCard({ week, planStartDate }: Props) {
-  const storageKey = `week-open-${week.id}`;
-  const [open, setOpen] = useState(true);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved !== null) setOpen(saved === "true");
-    setHydrated(true);
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (hydrated) localStorage.setItem(storageKey, String(open));
-  }, [open, hydrated, storageKey]);
+  const [open, setOpen] = useLocalStorage(`week-open-${week.id}`, true);
 
   const completed = week.sessions.filter((s) => s.completed).length;
   const total = week.sessions.length;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <Card padding="none">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between px-6 py-4 text-left"
@@ -102,6 +91,6 @@ export default function TrainingWeekCard({ week, planStartDate }: Props) {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

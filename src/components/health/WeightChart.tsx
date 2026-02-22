@@ -1,4 +1,7 @@
 import { formatShortDate, polylinePath, scaleLinear } from "@/lib/chart-utils";
+import EmptyState from "@/components/shared/EmptyState";
+import ChartContainer from "@/components/shared/ChartContainer";
+import ChartLegend from "@/components/shared/ChartLegend";
 
 interface HealthData {
   calendarDate: Date;
@@ -15,10 +18,7 @@ export default function WeightChart({ data }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">Poids</h3>
-        <p className="text-sm text-gray-500">Aucune donnée de poids</p>
-      </div>
+      <EmptyState title="Poids" message="Aucune donnée de poids" />
     );
   }
 
@@ -55,8 +55,20 @@ export default function WeightChart({ data }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">Poids</h3>
+    <ChartContainer
+      title="Poids"
+      legend={
+        <ChartLegend
+          className="mt-2 flex gap-4 text-xs text-gray-500"
+          items={[
+            { label: "Poids (kg)", color: "bg-blue-500", shape: "line" },
+            ...(fatPoints.length > 0
+              ? [{ label: "Masse grasse (%)", color: "bg-amber-500", shape: "dashed" as const }]
+              : []),
+          ]}
+        />
+      }
+    >
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
           const y = pad.top + chartH * (1 - t);
@@ -102,12 +114,6 @@ export default function WeightChart({ data }: Props) {
           ) : null
         )}
       </svg>
-      <div className="mt-2 flex gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-4 bg-blue-500" /> Poids (kg)</span>
-        {fatPoints.length > 0 && (
-          <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-4 bg-amber-500" style={{ borderTop: "1px dashed" }} /> Masse grasse (%)</span>
-        )}
-      </div>
-    </div>
+    </ChartContainer>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Calendar, MapPin, Clock, Gauge, Heart, Mountain, Footprints } from "lucide-react";
 import { formatDistance, formatDuration, formatPace, formatDate } from "@/lib/format";
+import StatItem from "@/components/shared/StatItem";
 
 interface Props {
   activity: {
@@ -58,13 +59,13 @@ export default function ActivityDetailHeader({ activity }: Props) {
 
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <div className="mb-1 flex items-center gap-1.5">
-              {s.icon}
-              <span className="text-xs text-gray-500">{s.label}</span>
-            </div>
-            <p className="text-sm font-semibold text-gray-900">{s.value}</p>
-          </div>
+          <StatItem
+            key={s.label}
+            icon={s.icon}
+            label={s.label}
+            value={s.value}
+            variant="card"
+          />
         ))}
       </div>
     </div>

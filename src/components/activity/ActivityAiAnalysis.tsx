@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback } from "react";
 import { Sparkles } from "lucide-react";
 import { analyzeActivity } from "@/actions/gemini";
 import MarkdownContent from "@/components/MarkdownContent";
+import SectionHeader from "@/components/shared/SectionHeader";
+import { useAiAnalysis } from "@/hooks/useAiAnalysis";
 
 interface Props {
   activityId: number;
@@ -11,32 +13,18 @@ interface Props {
 }
 
 export default function ActivityAiAnalysis({ activityId, existingAnalysis }: Props) {
-  const [analysis, setAnalysis] = useState<string>(existingAnalysis ?? "");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleAnalyze() {
-    setLoading(true);
-    setError("");
-
-    const result = await analyzeActivity(activityId);
-
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setAnalysis(result.analysis);
-    }
-
-    setLoading(false);
-  }
+  const action = useCallback(() => analyzeActivity(activityId), [activityId]);
+  const { analysis, loading, error, handleAnalyze } = useAiAnalysis(action, {
+    initialAnalysis: existingAnalysis ?? "",
+  });
 
   return (
     <section>
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-          <Sparkles className="h-5 w-5 text-purple-500" />
-          Analyse IA
-        </h3>
+      <SectionHeader
+        icon={<Sparkles className="h-5 w-5 text-purple-500" />}
+        title="Analyse IA"
+        className="mb-4"
+      >
         {!analysis && (
           <button
             onClick={handleAnalyze}
@@ -46,7 +34,7 @@ export default function ActivityAiAnalysis({ activityId, existingAnalysis }: Pro
             {loading ? "Analyse en cours..." : "Analyser cette course"}
           </button>
         )}
-      </div>
+      </SectionHeader>
 
       {loading && (
         <div className="space-y-3">

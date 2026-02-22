@@ -1,38 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback } from "react";
 import { Sparkles } from "lucide-react";
 import { analyzeGlobalCoaching } from "@/actions/gemini";
 import MarkdownContent from "@/components/MarkdownContent";
+import SectionHeader from "@/components/shared/SectionHeader";
+import { useAiAnalysis } from "@/hooks/useAiAnalysis";
 
 export default function AiAnalysis() {
-  const [analysis, setAnalysis] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>("");
-
-  async function handleAnalyze() {
-    setLoading(true);
-    setError("");
-    setAnalysis("");
-
-    const result = await analyzeGlobalCoaching();
-
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setAnalysis(result.analysis);
-    }
-
-    setLoading(false);
-  }
+  const action = useCallback(() => analyzeGlobalCoaching(), []);
+  const { analysis, loading, error, handleAnalyze } = useAiAnalysis(action);
 
   return (
     <section className="mt-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-xl font-bold text-gray-900">
-          <Sparkles className="h-5 w-5 text-purple-500" />
-          Coaching IA
-        </h2>
+      <SectionHeader
+        icon={<Sparkles className="h-5 w-5 text-purple-500" />}
+        title="Coaching IA"
+        as="h2"
+        size="lg"
+        className="mb-4"
+      >
         <button
           onClick={handleAnalyze}
           disabled={loading}
@@ -40,7 +27,7 @@ export default function AiAnalysis() {
         >
           {loading ? "Analyse en cours..." : "Analyser mon entraînement"}
         </button>
-      </div>
+      </SectionHeader>
 
       {loading && (
         <div className="space-y-3">

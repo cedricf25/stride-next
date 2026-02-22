@@ -1,4 +1,6 @@
 import { Gauge } from "lucide-react";
+import Card from "@/components/shared/Card";
+import SectionHeader from "@/components/shared/SectionHeader";
 
 interface Zone {
   label: string;
@@ -36,17 +38,18 @@ export default function PaceZonesCard({ vo2max, vmaKmh, zones }: Props) {
   const allZones = [zones.vma, zones.seuil, zones.tempo, zones.ef];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-          <Gauge className="h-4 w-4 text-blue-600" />
-          Allures de référence
-        </h3>
+    <Card padding="sm">
+      <SectionHeader
+        icon={<Gauge className="h-4 w-4 text-blue-600" />}
+        title="Allures de référence"
+        size="sm"
+        className="mb-3"
+      >
         <div className="flex items-center gap-3 text-xs text-gray-500">
           <span>VO2max {vo2max}</span>
           <span>VMA {vmaKmh} km/h</span>
         </div>
-      </div>
+      </SectionHeader>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {allZones.map((zone) => (
@@ -63,6 +66,6 @@ export default function PaceZonesCard({ vo2max, vmaKmh, zones }: Props) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

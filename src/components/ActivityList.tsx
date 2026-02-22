@@ -1,4 +1,5 @@
 import ActivityCard from "./ActivityCard";
+import EmptyState from "@/components/shared/EmptyState";
 import type { FormattedActivity } from "@/types/garmin";
 
 interface ActivityListProps {
@@ -8,9 +9,7 @@ interface ActivityListProps {
 export default function ActivityList({ activities }: ActivityListProps) {
   if (activities.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-gray-300 p-12 text-center">
-        <p className="text-gray-500">Aucune activité trouvée.</p>
-      </div>
+      <EmptyState variant="dashed" message="Aucune activité trouvée." />
     );
   }
 

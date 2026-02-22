@@ -1,4 +1,6 @@
 import { Zap } from "lucide-react";
+import Card from "@/components/shared/Card";
+import SectionHeader from "@/components/shared/SectionHeader";
 
 interface Props {
   activity: {
@@ -63,11 +65,12 @@ function Gauge({ value, label, maxValue = 5 }: { value: number; label: string; m
 
 export default function TrainingEffectCard({ activity }: Props) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-        <Zap className="h-5 w-5 text-yellow-500" />
-        Training Effect
-      </h3>
+    <Card>
+      <SectionHeader
+        icon={<Zap className="h-5 w-5 text-yellow-500" />}
+        title="Training Effect"
+        className="mb-4"
+      />
 
       <div className="flex items-center justify-around">
         {activity.aerobicTrainingEffect != null && (
@@ -104,6 +107,6 @@ export default function TrainingEffectCard({ activity }: Props) {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

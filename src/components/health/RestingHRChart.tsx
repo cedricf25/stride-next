@@ -1,4 +1,7 @@
 import { formatShortDate, polylinePath, scaleLinear } from "@/lib/chart-utils";
+import EmptyState from "@/components/shared/EmptyState";
+import ChartContainer from "@/components/shared/ChartContainer";
+import ChartLegend from "@/components/shared/ChartLegend";
 
 interface HealthData {
   calendarDate: Date;
@@ -14,10 +17,7 @@ export default function RestingHRChart({ data }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">FC repos</h3>
-        <p className="text-sm text-gray-500">Aucune donnée</p>
-      </div>
+      <EmptyState title="FC repos" message="Aucune donnée" />
     );
   }
 
@@ -49,8 +49,18 @@ export default function RestingHRChart({ data }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">FC repos</h3>
+    <ChartContainer
+      title="FC repos"
+      legend={
+        <ChartLegend
+          className="mt-2 flex gap-4 text-xs text-gray-500"
+          items={[
+            { label: "Quotidien", color: "bg-[#fca5a5]", shape: "line" },
+            { label: "Moyenne 7j", color: "bg-[#ef4444]", shape: "line" },
+          ]}
+        />
+      }
+    >
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
           const y = pad.top + chartH * (1 - t);
@@ -91,10 +101,6 @@ export default function RestingHRChart({ data }: Props) {
           ) : null
         )}
       </svg>
-      <div className="mt-2 flex gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-4 bg-[#fca5a5]" /> Quotidien</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-4 bg-[#ef4444]" /> Moyenne 7j</span>
-      </div>
-    </div>
+    </ChartContainer>
   );
 }

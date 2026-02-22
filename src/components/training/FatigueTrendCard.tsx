@@ -1,6 +1,9 @@
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Zap, Smile } from "lucide-react";
 import type { FatigueTrendData } from "@/actions/health";
 import { polylinePath, scaleLinear } from "@/lib/chart-utils";
+import Card from "@/components/shared/Card";
+import EmptyState from "@/components/shared/EmptyState";
+import ChartLegend from "@/components/shared/ChartLegend";
 
 interface Props {
   data: FatigueTrendData;
@@ -38,11 +41,7 @@ export default function FatigueTrendCard({ data }: Props) {
 
   if (days.length < 3) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <p className="text-sm text-gray-500">
-          Pas assez de données pour afficher la tendance de fatigue.
-        </p>
-      </div>
+      <EmptyState message="Pas assez de données pour afficher la tendance de fatigue." />
     );
   }
 
@@ -70,7 +69,7 @@ export default function FatigueTrendCard({ data }: Props) {
   const maxLoad = Math.max(...loads, 5);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <Card padding="md">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">
           Tendance fatigue (14j)
@@ -184,21 +183,14 @@ export default function FatigueTrendCard({ data }: Props) {
         <span>{message}</span>
       </div>
 
-      {/* Légende */}
-      <div className="mt-2 flex items-center gap-4 text-xs text-gray-400">
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-orange-400" />
-          Fatigue
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded bg-blue-400 opacity-30" />
-          Charge
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-px w-4 border-t border-dashed border-red-300" />
-          Seuil
-        </span>
-      </div>
-    </div>
+      <ChartLegend
+        className="mt-2 flex items-center gap-4 text-xs text-gray-400"
+        items={[
+          { label: "Fatigue", color: "bg-orange-400", shape: "circle" },
+          { label: "Charge", color: "bg-blue-400 opacity-30", shape: "square" },
+          { label: "Seuil", color: "border-red-300", shape: "dashed" },
+        ]}
+      />
+    </Card>
   );
 }

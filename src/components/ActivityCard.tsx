@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Calendar, MapPin, Clock, Gauge, Heart, Zap } from "lucide-react";
 import type { FormattedActivity } from "@/types/garmin";
+import StatItem from "@/components/shared/StatItem";
+import ProgressBar from "@/components/shared/ProgressBar";
 
 interface ActivityCardProps {
   activity: FormattedActivity;
@@ -27,10 +29,10 @@ export default function ActivityCard({ activity }: ActivityCardProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Stat icon={<MapPin className="h-4 w-4 text-blue-500" />} label="Distance" value={activity.distance} />
-          <Stat icon={<Clock className="h-4 w-4 text-green-500" />} label="Durée" value={activity.duration} />
-          <Stat icon={<Gauge className="h-4 w-4 text-orange-500" />} label="Allure" value={activity.pace} />
-          <Stat icon={<Heart className="h-4 w-4 text-red-500" />} label="FC moy." value={activity.averageHR ? `${activity.averageHR} bpm` : "N/A"} />
+          <StatItem icon={<MapPin className="h-4 w-4 text-blue-500" />} label="Distance" value={activity.distance} />
+          <StatItem icon={<Clock className="h-4 w-4 text-green-500" />} label="Durée" value={activity.duration} />
+          <StatItem icon={<Gauge className="h-4 w-4 text-orange-500" />} label="Allure" value={activity.pace} />
+          <StatItem icon={<Heart className="h-4 w-4 text-red-500" />} label="FC moy." value={activity.averageHR ? `${activity.averageHR} bpm` : "N/A"} />
         </div>
 
         {/* Training Effect bar */}
@@ -42,28 +44,15 @@ export default function ActivityCard({ activity }: ActivityCardProps) {
                 <span className="text-gray-500">Training Effect</span>
                 <span className="font-medium text-gray-700">{activity.aerobicTE.toFixed(1)}</span>
               </div>
-              <div className="mt-0.5 h-1.5 w-full rounded-full bg-gray-100">
-                <div
-                  className={`h-1.5 rounded-full ${teColor(activity.aerobicTE)}`}
-                  style={{ width: `${Math.min((activity.aerobicTE / 5) * 100, 100)}%` }}
-                />
-              </div>
+              <ProgressBar
+                value={Math.min((activity.aerobicTE / 5) * 100, 100)}
+                color={teColor(activity.aerobicTE)}
+                className="mt-0.5"
+              />
             </div>
           </div>
         )}
       </div>
     </Link>
-  );
-}
-
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <div className="mt-0.5">{icon}</div>
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm font-medium text-gray-900">{value}</p>
-      </div>
-    </div>
   );
 }

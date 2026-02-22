@@ -1,4 +1,7 @@
 import { formatShortDate, polylinePath, scaleLinear } from "@/lib/chart-utils";
+import EmptyState from "@/components/shared/EmptyState";
+import ChartContainer from "@/components/shared/ChartContainer";
+import ChartLegend from "@/components/shared/ChartLegend";
 
 interface SleepData {
   calendarDate: Date;
@@ -16,10 +19,7 @@ export default function BodyBatteryHistoryChart({ data }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">Body Battery — Historique</h3>
-        <p className="text-sm text-gray-500">Aucune donnée</p>
-      </div>
+      <EmptyState title="Body Battery — Historique" message="Aucune donnée" />
     );
   }
 
@@ -52,8 +52,18 @@ export default function BodyBatteryHistoryChart({ data }: Props) {
   ];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">Body Battery — Historique</h3>
+    <ChartContainer
+      title="Body Battery — Historique"
+      legend={
+        <ChartLegend
+          className="mt-2 flex gap-4 text-xs text-gray-500"
+          items={[
+            { label: "Fin de nuit", color: "bg-green-500", shape: "line" },
+            { label: "Début de nuit", color: "bg-gray-300", shape: "dashed" },
+          ]}
+        />
+      }
+    >
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         {/* Zones de couleur */}
         {zones.map((z, i) => (
@@ -113,10 +123,6 @@ export default function BodyBatteryHistoryChart({ data }: Props) {
           ) : null
         )}
       </svg>
-      <div className="mt-2 flex gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-4 bg-green-500" /> Fin de nuit</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-4 bg-gray-300" style={{ borderTop: "1px dashed" }} /> Début de nuit</span>
-      </div>
-    </div>
+    </ChartContainer>
   );
 }

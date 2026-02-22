@@ -1,4 +1,7 @@
 import { Battery } from "lucide-react";
+import Card from "@/components/shared/Card";
+import EmptyState from "@/components/shared/EmptyState";
+import SectionHeader from "@/components/shared/SectionHeader";
 
 interface SleepData {
   startBodyBattery: number | null;
@@ -21,13 +24,10 @@ function batteryColor(value: number): string {
 export default function BodyBatteryCard({ data }: Props) {
   if (!data || data.endBodyBattery == null) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-          <Battery className="h-5 w-5 text-green-500" />
-          Body Battery
-        </h3>
-        <p className="text-sm text-gray-500">Aucune donnée</p>
-      </div>
+      <EmptyState
+        title="Body Battery"
+        message="Aucune donnée"
+      />
     );
   }
 
@@ -35,11 +35,12 @@ export default function BodyBatteryCard({ data }: Props) {
   const isPositive = change >= 0;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
-      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-        <Battery className="h-5 w-5 text-green-500" />
-        Body Battery
-      </h3>
+    <Card>
+      <SectionHeader
+        icon={<Battery className="h-5 w-5 text-green-500" />}
+        title="Body Battery"
+        className="mb-4"
+      />
 
       <div className="flex items-center gap-6">
         {/* Gauge */}
@@ -86,6 +87,6 @@ export default function BodyBatteryCard({ data }: Props) {
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
