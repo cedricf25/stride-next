@@ -375,5 +375,16 @@ export async function syncAll() {
     console.error("syncHealthMetrics failed:", e);
   }
 
+  // Update last sync timestamp
+  try {
+    const user = await getOrCreateUser();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastSyncAt: new Date() },
+    });
+  } catch (e) {
+    console.error("Failed to update lastSyncAt:", e);
+  }
+
   return results;
 }

@@ -169,7 +169,15 @@ export async function generateTrainingPlan(input: TrainingPlanInput) {
     }
   }
 
-  const prompt = `Génère un plan d'entraînement avec ces paramètres :
+  const nowStr = now.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
+  const lastSyncStr = user.lastSyncAt
+    ? user.lastSyncAt.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })
+    : "jamais";
+
+  const prompt = `Date et heure actuelles : ${nowStr}
+Dernière synchronisation Garmin : ${lastSyncStr}
+
+Génère un plan d'entraînement avec ces paramètres :
 - Type de course : ${input.raceType}
 ${input.targetDistance ? `- Distance cible : ${input.targetDistance} km` : ""}
 ${input.targetElevation ? `- D+ cible : ${input.targetElevation} m` : ""}
@@ -463,9 +471,17 @@ export async function updateTrainingPlan(
       : weeksToDelete.length || 8;
   }
 
+  const nowStr = now.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
+  const lastSyncStr = plan.user.lastSyncAt
+    ? plan.user.lastSyncAt.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })
+    : "jamais";
+
   let prompt: string;
   if (isBackfill) {
-    prompt = `Régénère entièrement un plan d'entraînement en incluant les semaines rétrospectives.
+    prompt = `Date et heure actuelles : ${nowStr}
+Dernière synchronisation Garmin : ${lastSyncStr}
+
+Régénère entièrement un plan d'entraînement en incluant les semaines rétrospectives.
 
 Plan :
 - Nom : ${plan.name}
@@ -486,7 +502,10 @@ Profil actuel du coureur :
 
 Génère les ${totalWeeksToGenerate} semaines complètes (passées + futures).`;
   } else {
-    prompt = `Mets à jour un plan d'entraînement existant en régénérant les semaines restantes.
+    prompt = `Date et heure actuelles : ${nowStr}
+Dernière synchronisation Garmin : ${lastSyncStr}
+
+Mets à jour un plan d'entraînement existant en régénérant les semaines restantes.
 
 Plan original :
 - Nom : ${plan.name}

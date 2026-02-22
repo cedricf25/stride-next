@@ -158,7 +158,15 @@ export async function generatePredictions(): Promise<PredictionsResult> {
     bestEfforts["semi"] = `${Math.floor(d / 3600)}h${String(Math.floor((d % 3600) / 60)).padStart(2, "0")}`;
   }
 
-  const prompt = `Prédit les temps de course pour ce coureur :
+  const nowStr = new Date().toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
+  const lastSyncStr = user.lastSyncAt
+    ? user.lastSyncAt.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })
+    : "jamais";
+
+  const prompt = `Date et heure actuelles : ${nowStr}
+Dernière synchronisation Garmin : ${lastSyncStr}
+
+Prédit les temps de course pour ce coureur :
 
 Profil :
 - VO2max : ${latestVO2max ?? "inconnu"}

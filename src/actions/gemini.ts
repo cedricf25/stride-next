@@ -137,7 +137,18 @@ export async function analyzeGlobalCoaching(): Promise<AnalysisResponse> {
       maxHR: user.maxHR,
     };
 
-    const prompt = `## Profil coureur
+    const nowStr = now.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
+    const lastSyncStr = user.lastSyncAt
+      ? user.lastSyncAt.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })
+      : "jamais";
+
+    const prompt = `## Date et heure actuelles
+${nowStr}
+
+## Dernière synchronisation Garmin
+${lastSyncStr}
+
+## Profil coureur
 ${JSON.stringify(userProfile, null, 2)}
 
 ## 30 dernières activités
@@ -251,7 +262,19 @@ export async function analyzeActivity(
       maxHR: activity.user.maxHR,
     };
 
-    const prompt = `## Séance à analyser
+    const now = new Date();
+    const nowStr = now.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
+    const lastSyncStr = activity.user.lastSyncAt
+      ? activity.user.lastSyncAt.toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })
+      : "jamais";
+
+    const prompt = `## Date et heure actuelles
+${nowStr}
+
+## Dernière synchronisation Garmin
+${lastSyncStr}
+
+## Séance à analyser
 ${JSON.stringify(activityData, null, 2)}
 
 ## Profil coureur

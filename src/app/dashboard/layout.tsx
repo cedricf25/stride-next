@@ -1,6 +1,7 @@
 import { DatabaseZap } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { checkDbConnection } from "@/lib/prisma";
+import { getOrCreateUser } from "@/lib/user";
 
 export default async function DashboardLayout({
   children,
@@ -29,9 +30,11 @@ export default async function DashboardLayout({
     );
   }
 
+  const user = await getOrCreateUser();
+
   return (
     <div className="flex h-screen">
-      <Sidebar />
+      <Sidebar lastSyncAt={user.lastSyncAt?.toISOString() ?? null} />
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   );

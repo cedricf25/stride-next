@@ -13,7 +13,7 @@ const navItems = [
   { href: "/dashboard/predictions", label: "Prédictions", icon: Timer },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
   const pathname = usePathname();
 
   return (
@@ -52,7 +52,7 @@ export default function Sidebar() {
 
       {/* Sync button */}
       <div className="border-t border-gray-200 px-3 py-3">
-        <SyncButton />
+        <SyncButton lastSyncAt={lastSyncAt} />
       </div>
     </aside>
   );

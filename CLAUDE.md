@@ -23,6 +23,7 @@ Dashboard de course à pied : récupère les activités Garmin Connect, les pers
 ## Architecture
 
 **Sync-then-read** : les pages lisent la DB (jamais l'API Garmin directement). Le bouton "Synchroniser" dans la sidebar déclenche `syncAll()` qui :
+
 1. Récupère les activités Garmin → upsert dans `Activity` + `ActivitySplit`
 2. Récupère le sommeil → upsert dans `SleepRecord`
 3. Récupère les métriques santé → upsert dans `HealthMetric`
@@ -100,6 +101,8 @@ src/
 - Graphiques SVG inline + Tailwind (pas de lib de charts externe)
 - Formatage des dates en français (locale `fr-FR`)
 - Plans d'entraînement générés par Gemini en JSON structuré (`responseMimeType: "application/json"`)
+
+- Ne recompile pas toi meme
 
 ## Variables d'environnement (.env.local)
 
