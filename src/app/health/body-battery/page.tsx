@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { fetchSleepHistory } from "@/actions/health";
 import BodyBatteryHistoryChart from "@/components/health/BodyBatteryHistoryChart";
+import { PageContainer, BackLink, DataTable } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +23,53 @@ export default async function BodyBatteryDetailPage() {
     { label: "Maximum", value: maxEnd != null ? `${maxEnd}` : "—" },
   ];
 
+  type SleepRow = (typeof data)[number];
+
+  const columns = [
+    {
+      key: "date",
+      header: "Date",
+      className: "px-4 py-2 font-medium text-gray-900",
+      render: (d: SleepRow) =>
+        new Date(d.calendarDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+    },
+    {
+      key: "start",
+      header: "Début nuit",
+      render: (d: SleepRow) =>
+        d.startBodyBattery != null ? d.startBodyBattery : "—",
+    },
+    {
+      key: "end",
+      header: "Fin nuit",
+      render: (d: SleepRow) =>
+        d.endBodyBattery != null ? (
+          <span className={`font-medium ${
+            d.endBodyBattery >= 75 ? "text-green-600" :
+            d.endBodyBattery >= 50 ? "text-blue-600" :
+            d.endBodyBattery >= 25 ? "text-orange-600" : "text-red-600"
+          }`}>
+            {d.endBodyBattery}
+          </span>
+        ) : "—",
+    },
+    {
+      key: "change",
+      header: "Variation",
+      render: (d: SleepRow) => {
+        const change = d.bodyBatteryChange;
+        return change != null ? (
+          <span className={`font-medium ${change >= 0 ? "text-green-600" : "text-red-600"}`}>
+            {change >= 0 ? "+" : ""}{change}
+          </span>
+        ) : "—";
+      },
+    },
+  ];
+
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <Link href="/health" className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
-        <ArrowLeft className="h-4 w-4" /> Retour à la santé
-      </Link>
+    <PageContainer>
+      <BackLink href="/health" label="Retour à la santé" />
 
       <h1 className="mb-1 text-2xl font-bold text-gray-900">Body Battery</h1>
       <p className="mb-6 text-sm text-gray-500">90 derniers jours — {withBB.length} nuits enregistrées</p>
@@ -44,49 +85,12 @@ export default async function BodyBatteryDetailPage() {
 
       <BodyBatteryHistoryChart data={data} />
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium">Début nuit</th>
-              <th className="px-4 py-3 font-medium">Fin nuit</th>
-              <th className="px-4 py-3 font-medium">Variation</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...data].reverse().map((d) => {
-              const change = d.bodyBatteryChange;
-              return (
-                <tr key={d.calendarDate.toISOString()} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium text-gray-900">
-                    {new Date(d.calendarDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                  </td>
-                  <td className="px-4 py-2">{d.startBodyBattery != null ? d.startBodyBattery : "—"}</td>
-                  <td className="px-4 py-2">
-                    {d.endBodyBattery != null ? (
-                      <span className={`font-medium ${
-                        d.endBodyBattery >= 75 ? "text-green-600" :
-                        d.endBodyBattery >= 50 ? "text-blue-600" :
-                        d.endBodyBattery >= 25 ? "text-orange-600" : "text-red-600"
-                      }`}>
-                        {d.endBodyBattery}
-                      </span>
-                    ) : "—"}
-                  </td>
-                  <td className="px-4 py-2">
-                    {change != null ? (
-                      <span className={`font-medium ${change >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {change >= 0 ? "+" : ""}{change}
-                      </span>
-                    ) : "—"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <DataTable
+        columns={columns}
+        data={[...data].reverse()}
+        rowKey={(d) => d.calendarDate.toISOString()}
+        className="mt-6"
+      />
+    </PageContainer>
   );
 }

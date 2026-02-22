@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { fetchSleepHistory } from "@/actions/health";
 import HrvChart from "@/components/health/HrvChart";
+import { PageContainer, BackLink, DataTable } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +30,41 @@ export default async function HrvDetailPage() {
     { label: "Tendance 7j", value: trend, color: trendColor },
   ];
 
+  type SleepRow = (typeof data)[number];
+
+  const columns = [
+    {
+      key: "date",
+      header: "Date",
+      className: "px-4 py-2 font-medium text-gray-900",
+      render: (d: SleepRow) =>
+        new Date(d.calendarDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+    },
+    {
+      key: "hrv",
+      header: "HRV",
+      render: (d: SleepRow) =>
+        d.avgOvernightHRV != null ? (
+          <span className="font-medium text-purple-600">{Math.round(d.avgOvernightHRV)} ms</span>
+        ) : "—",
+    },
+    {
+      key: "hr",
+      header: "FC repos nuit",
+      render: (d: SleepRow) =>
+        d.restingHeartRate != null ? `${d.restingHeartRate} bpm` : "—",
+    },
+    {
+      key: "stress",
+      header: "Stress sommeil",
+      render: (d: SleepRow) =>
+        d.avgSleepStress != null ? Math.round(d.avgSleepStress) : "—",
+    },
+  ];
+
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <Link href="/health" className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
-        <ArrowLeft className="h-4 w-4" /> Retour à la santé
-      </Link>
+    <PageContainer>
+      <BackLink href="/health" label="Retour à la santé" />
 
       <h1 className="mb-1 text-2xl font-bold text-gray-900">HRV nocturne</h1>
       <p className="mb-6 text-sm text-gray-500">90 derniers jours — {withHrv.length} mesures</p>
@@ -51,34 +80,12 @@ export default async function HrvDetailPage() {
 
       <HrvChart data={data} />
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium">HRV</th>
-              <th className="px-4 py-3 font-medium">FC repos nuit</th>
-              <th className="px-4 py-3 font-medium">Stress sommeil</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...data].reverse().map((d) => (
-              <tr key={d.calendarDate.toISOString()} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-4 py-2 font-medium text-gray-900">
-                  {new Date(d.calendarDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                </td>
-                <td className="px-4 py-2">
-                  {d.avgOvernightHRV != null ? (
-                    <span className="font-medium text-purple-600">{Math.round(d.avgOvernightHRV)} ms</span>
-                  ) : "—"}
-                </td>
-                <td className="px-4 py-2">{d.restingHeartRate != null ? `${d.restingHeartRate} bpm` : "—"}</td>
-                <td className="px-4 py-2">{d.avgSleepStress != null ? Math.round(d.avgSleepStress) : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <DataTable
+        columns={columns}
+        data={[...data].reverse()}
+        rowKey={(d) => d.calendarDate.toISOString()}
+        className="mt-6"
+      />
+    </PageContainer>
   );
 }

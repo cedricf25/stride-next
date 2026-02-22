@@ -1,6 +1,5 @@
 import type { RacePredictionData } from "@/actions/predictions";
-import Card from "@/components/shared/Card";
-import ProgressBar from "@/components/shared/ProgressBar";
+import { Card, ProgressBar, Badge } from "@/components/shared";
 
 const distanceIcons: Record<string, string> = {
   "5km": "5K",
@@ -10,10 +9,10 @@ const distanceIcons: Record<string, string> = {
   "trail": "50K",
 };
 
-function confidenceColor(confidence: number) {
-  if (confidence >= 70) return "text-green-700 bg-green-50 border-green-200";
-  if (confidence >= 40) return "text-orange-700 bg-orange-50 border-orange-200";
-  return "text-red-700 bg-red-50 border-red-200";
+function confidenceBadgeColor(confidence: number): "green" | "orange" | "red" {
+  if (confidence >= 70) return "green";
+  if (confidence >= 40) return "orange";
+  return "red";
 }
 
 function confidenceBarColor(confidence: number) {
@@ -52,11 +51,9 @@ export default function PredictionCard({
       <div className="mt-4">
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-500">Fiabilité</span>
-          <span
-            className={`rounded-full border px-2 py-0.5 text-xs font-medium ${confidenceColor(prediction.confidence)}`}
-          >
+          <Badge color={confidenceBadgeColor(prediction.confidence)} variant="outline">
             {prediction.confidence}%
-          </span>
+          </Badge>
         </div>
         <ProgressBar
           value={prediction.confidence}

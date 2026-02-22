@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { fetchHealthHistory } from "@/actions/health";
 import WeightChart from "@/components/health/WeightChart";
+import { PageContainer, BackLink, DataTable } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +26,47 @@ export default async function WeightDetailPage() {
     },
   ];
 
+  type HealthRow = (typeof data)[number];
+
+  const columns = [
+    {
+      key: "date",
+      header: "Date",
+      className: "px-4 py-2 font-medium text-gray-900",
+      render: (d: HealthRow) =>
+        new Date(d.calendarDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+    },
+    {
+      key: "weight",
+      header: "Poids",
+      render: (d: HealthRow) =>
+        d.weight != null ? (
+          <span className="font-medium text-blue-600">{d.weight.toFixed(1)} kg</span>
+        ) : "—",
+    },
+    {
+      key: "bmi",
+      header: "IMC",
+      render: (d: HealthRow) =>
+        d.bmi != null ? d.bmi.toFixed(1) : "—",
+    },
+    {
+      key: "fat",
+      header: "Masse grasse",
+      render: (d: HealthRow) =>
+        d.bodyFatPercentage != null ? `${d.bodyFatPercentage.toFixed(1)}%` : "—",
+    },
+    {
+      key: "muscle",
+      header: "Masse musculaire",
+      render: (d: HealthRow) =>
+        d.muscleMass != null ? `${d.muscleMass.toFixed(1)} kg` : "—",
+    },
+  ];
+
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <Link href="/health" className="mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
-        <ArrowLeft className="h-4 w-4" /> Retour à la santé
-      </Link>
+    <PageContainer>
+      <BackLink href="/health" label="Retour à la santé" />
 
       <h1 className="mb-1 text-2xl font-bold text-gray-900">Poids</h1>
       <p className="mb-6 text-sm text-gray-500">90 derniers jours — {withWeight.length} mesures</p>
@@ -47,36 +82,12 @@ export default async function WeightDetailPage() {
 
       <WeightChart data={data} />
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium">Poids</th>
-              <th className="px-4 py-3 font-medium">IMC</th>
-              <th className="px-4 py-3 font-medium">Masse grasse</th>
-              <th className="px-4 py-3 font-medium">Masse musculaire</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...data].reverse().map((d) => (
-              <tr key={d.calendarDate.toISOString()} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-4 py-2 font-medium text-gray-900">
-                  {new Date(d.calendarDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                </td>
-                <td className="px-4 py-2">
-                  {d.weight != null ? (
-                    <span className="font-medium text-blue-600">{d.weight.toFixed(1)} kg</span>
-                  ) : "—"}
-                </td>
-                <td className="px-4 py-2">{d.bmi != null ? d.bmi.toFixed(1) : "—"}</td>
-                <td className="px-4 py-2">{d.bodyFatPercentage != null ? `${d.bodyFatPercentage.toFixed(1)}%` : "—"}</td>
-                <td className="px-4 py-2">{d.muscleMass != null ? `${d.muscleMass.toFixed(1)} kg` : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <DataTable
+        columns={columns}
+        data={[...data].reverse()}
+        rowKey={(d) => d.calendarDate.toISOString()}
+        className="mt-6"
+      />
+    </PageContainer>
   );
 }

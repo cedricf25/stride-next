@@ -1,20 +1,24 @@
-import Link from "next/link";
 import { Plus, Target, Calendar } from "lucide-react";
 import { fetchTrainingPlans } from "@/actions/training";
 import { fetchFatigueTrend } from "@/actions/health";
 import FatigueTrendCard from "@/components/training/FatigueTrendCard";
+import {
+  PageContainer,
+  LinkButton,
+  EmptyState,
+  Badge,
+  ProgressBar,
+} from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
 function statusBadge(status: string) {
-  switch (status) {
-    case "active":
-      return <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Actif</span>;
-    case "completed":
-      return <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Terminé</span>;
-    default:
-      return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">Archivé</span>;
-  }
+  const map: Record<string, { color: "green" | "blue" | "gray"; label: string }> = {
+    active: { color: "green", label: "Actif" },
+    completed: { color: "blue", label: "Terminé" },
+  };
+  const { color, label } = map[status] ?? { color: "gray" as const, label: "Archivé" };
+  return <Badge color={color}>{label}</Badge>;
 }
 
 export default async function TrainingPage() {
@@ -24,16 +28,15 @@ export default async function TrainingPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <PageContainer>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Entraînement</h1>
-        <Link
+        <LinkButton
           href="/training/new"
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          icon={<Plus className="h-4 w-4" />}
         >
-          <Plus className="h-4 w-4" />
           Nouveau plan
-        </Link>
+        </LinkButton>
       </div>
 
       {/* Fatigue */}
@@ -42,13 +45,12 @@ export default async function TrainingPage() {
       </div>
 
       {plans.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 p-12 text-center">
-          <Target className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-          <p className="text-gray-500">Aucun plan d&apos;entraînement</p>
-          <p className="mt-1 text-sm text-gray-400">
-            Créez votre premier plan pour préparer votre prochaine course
-          </p>
-        </div>
+        <EmptyState
+          variant="dashed"
+          icon={<Target className="h-10 w-10" />}
+          message="Aucun plan d&apos;entraînement"
+          subtitle="Créez votre premier plan pour préparer votre prochaine course"
+        />
       ) : (
         <div className="space-y-4">
           {plans.map((plan) => {
@@ -63,7 +65,7 @@ export default async function TrainingPage() {
             );
 
             return (
-              <Link key={plan.id} href={`/training/${plan.id}`}>
+              <a key={plan.id} href={`/training/${plan.id}`}>
                 <div className="rounded-xl border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between">
                     <div>
@@ -92,21 +94,16 @@ export default async function TrainingPage() {
                     </div>
                   </div>
 
-                  {/* Progress bar */}
-                  <div className="mt-3 h-1.5 w-full rounded-full bg-gray-100">
-                    <div
-                      className="h-1.5 rounded-full bg-blue-500"
-                      style={{
-                        width: `${totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
+                  <ProgressBar
+                    value={totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0}
+                    className="mt-3"
+                  />
                 </div>
-              </Link>
+              </a>
             );
           })}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

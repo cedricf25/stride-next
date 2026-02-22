@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { fetchTrainingPlan, fetchPaceZones } from "@/actions/training";
 import TrainingPlanHeader from "@/components/training/TrainingPlanHeader";
 import TrainingWeekCard from "@/components/training/TrainingWeekCard";
 import DeletePlanButton from "@/components/training/DeletePlanButton";
 import UpdatePlanButton from "@/components/training/UpdatePlanButton";
 import PaceZonesCard from "@/components/training/PaceZonesCard";
+import { PageContainer, BackLink } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -26,14 +25,8 @@ export default async function TrainingPlanPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <Link
-        href="/training"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour aux plans
-      </Link>
+    <PageContainer>
+      <BackLink href="/training" label="Retour aux plans" />
 
       <TrainingPlanHeader plan={plan} />
 
@@ -55,6 +48,6 @@ export default async function TrainingPlanPage({
           <TrainingWeekCard key={week.id} week={week} planStartDate={plan.startDate} />
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }

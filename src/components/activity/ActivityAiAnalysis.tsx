@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { Sparkles } from "lucide-react";
 import { analyzeActivity } from "@/actions/gemini";
 import MarkdownContent from "@/components/MarkdownContent";
-import SectionHeader from "@/components/shared/SectionHeader";
+import { SectionHeader, Button, AlertBanner } from "@/components/shared";
 import { useAiAnalysis } from "@/hooks/useAiAnalysis";
 
 interface Props {
@@ -26,13 +26,9 @@ export default function ActivityAiAnalysis({ activityId, existingAnalysis }: Pro
         className="mb-4"
       >
         {!analysis && (
-          <button
-            onClick={handleAnalyze}
-            disabled={loading}
-            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
-          >
+          <Button variant="ai" onClick={handleAnalyze} loading={loading}>
             {loading ? "Analyse en cours..." : "Analyser cette course"}
-          </button>
+          </Button>
         )}
       </SectionHeader>
 
@@ -49,9 +45,7 @@ export default function ActivityAiAnalysis({ activityId, existingAnalysis }: Pro
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">
-          {error}
-        </div>
+        <AlertBanner variant="error">{error}</AlertBanner>
       )}
 
       {analysis && <MarkdownContent content={analysis} />}

@@ -6,6 +6,7 @@ import { fetchGarminActivities } from "@/actions/garmin";
 import type { FormattedActivity, ActivityFilters as Filters } from "@/types/garmin";
 import ActivityCard from "@/components/ActivityCard";
 import ActivityFilters from "./ActivityFilters";
+import { EmptyState, Button } from "@/components/shared";
 
 const PAGE_SIZE = 12;
 
@@ -74,13 +75,12 @@ export default function ActivityResults() {
       )}
 
       {activities.length === 0 && !isPending && !isInitial ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 p-12 text-center">
-          <Activity className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-          <p className="text-gray-500">Aucune activité trouvée</p>
-          <p className="mt-1 text-sm text-gray-400">
-            Essaie de modifier tes filtres
-          </p>
-        </div>
+        <EmptyState
+          variant="dashed"
+          icon={<Activity className="h-10 w-10" />}
+          message="Aucune activité trouvée"
+          subtitle="Essaie de modifier tes filtres"
+        />
       ) : (
         <div
           className={`grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 ${
@@ -95,16 +95,18 @@ export default function ActivityResults() {
 
       {hasMore && activities.length > 0 && (
         <div className="mt-6 text-center">
-          <button
+          <Button
+            variant="secondary"
             onClick={handleLoadMore}
             disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            icon={
+              <ChevronDown
+                className={`h-4 w-4 ${isPending ? "animate-bounce" : ""}`}
+              />
+            }
           >
-            <ChevronDown
-              className={`h-4 w-4 ${isPending ? "animate-bounce" : ""}`}
-            />
             {isPending ? "Chargement..." : "Voir plus"}
-          </button>
+          </Button>
         </div>
       )}
     </>

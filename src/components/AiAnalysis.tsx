@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { Sparkles } from "lucide-react";
 import { analyzeGlobalCoaching } from "@/actions/gemini";
 import MarkdownContent from "@/components/MarkdownContent";
-import SectionHeader from "@/components/shared/SectionHeader";
+import { SectionHeader, Button, AlertBanner } from "@/components/shared";
 import { useAiAnalysis } from "@/hooks/useAiAnalysis";
 
 export default function AiAnalysis() {
@@ -20,13 +20,9 @@ export default function AiAnalysis() {
         size="lg"
         className="mb-4"
       >
-        <button
-          onClick={handleAnalyze}
-          disabled={loading}
-          className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button variant="ai" onClick={handleAnalyze} loading={loading}>
           {loading ? "Analyse en cours..." : "Analyser mon entraînement"}
-        </button>
+        </Button>
       </SectionHeader>
 
       {loading && (
@@ -46,9 +42,7 @@ export default function AiAnalysis() {
       )}
 
       {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
-          {error}
-        </div>
+        <AlertBanner variant="error">{error}</AlertBanner>
       )}
 
       {analysis && <MarkdownContent content={analysis} />}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, ArrowUpDown, X } from "lucide-react";
 import type { ActivityFilters as Filters } from "@/types/garmin";
+import { FilterChip } from "@/components/shared";
 
 const PERIODS = [
   { value: "7d", label: "7 jours" },
@@ -33,7 +34,7 @@ interface Props {
 
 export default function ActivityFilters({ filters, onChange }: Props) {
   const [search, setSearch] = useState(filters.search ?? "");
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     debounceRef.current = setTimeout(() => {
@@ -101,17 +102,14 @@ export default function ActivityFilters({ filters, onChange }: Props) {
       <div className="flex flex-wrap items-center gap-2">
         {/* Period chips */}
         {PERIODS.map((p) => (
-          <button
+          <FilterChip
             key={p.value}
+            active={filters.period === p.value}
+            activeColor="blue"
             onClick={() => setPeriod(p.value)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              filters.period === p.value
-                ? "bg-blue-100 text-blue-700"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
           >
             {p.label}
-          </button>
+          </FilterChip>
         ))}
 
         <div className="mx-1 h-4 w-px bg-gray-300" />
@@ -121,45 +119,37 @@ export default function ActivityFilters({ filters, onChange }: Props) {
           const active =
             filters.distanceMin === d.min && filters.distanceMax === d.max;
           return (
-            <button
+            <FilterChip
               key={d.label}
+              active={active}
+              activeColor="green"
               onClick={() => setDistance(d.min, d.max)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                active
-                  ? "bg-green-100 text-green-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
             >
               {d.label}
-            </button>
+            </FilterChip>
           );
         })}
 
         <div className="mx-1 h-4 w-px bg-gray-300" />
 
-        {/* Sort buttons */}
+        {/* Sort chips */}
         {SORT_OPTIONS.map((s) => {
           const active = (filters.sortBy ?? "date") === s.value;
           return (
-            <button
+            <FilterChip
               key={s.value}
+              active={active}
+              activeColor="purple"
+              icon={active ? <ArrowUpDown className="h-3 w-3" /> : undefined}
               onClick={() => setSort(s.value as Filters["sortBy"])}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                active
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
             >
-              {active && (
-                <ArrowUpDown className="h-3 w-3" />
-              )}
               {s.label}
               {active && (
                 <span className="text-[10px]">
                   {(filters.sortOrder ?? "desc") === "desc" ? "↓" : "↑"}
                 </span>
               )}
-            </button>
+            </FilterChip>
           );
         })}
 
@@ -167,13 +157,14 @@ export default function ActivityFilters({ filters, onChange }: Props) {
         {hasActiveFilters && (
           <>
             <div className="mx-1 h-4 w-px bg-gray-300" />
-            <button
+            <FilterChip
+              active
+              activeColor="red"
+              icon={<X className="h-3 w-3" />}
               onClick={clearFilters}
-              className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
             >
-              <X className="h-3 w-3" />
               Effacer
-            </button>
+            </FilterChip>
           </>
         )}
       </div>

@@ -3,6 +3,7 @@ import { fetchGarminActivities } from "@/actions/garmin";
 import ActivityList from "@/components/ActivityList";
 import AiAnalysis from "@/components/AiAnalysis";
 import HealthSummaryWidgets from "@/components/health/HealthSummaryWidgets";
+import { PageContainer, AlertBanner } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -10,15 +11,17 @@ export default async function DashboardPage() {
   const { activities, error } = await fetchGarminActivities();
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <PageContainer>
       <h1 className="mb-6 text-2xl font-bold text-gray-900">Dashboard</h1>
 
-      {/* Error banner */}
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+        <AlertBanner
+          variant="error"
+          icon={<AlertCircle className="h-5 w-5" />}
+          className="mb-6"
+        >
           <p>{error}</p>
-        </div>
+        </AlertBanner>
       )}
 
       {/* Health Summary */}
@@ -34,6 +37,6 @@ export default async function DashboardPage() {
 
       {/* AI Coaching */}
       <AiAnalysis />
-    </div>
+    </PageContainer>
   );
 }

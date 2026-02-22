@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, CalendarClock } from "lucide-react";
 import { updateTrainingPlan } from "@/actions/training";
+import { Button } from "@/components/shared";
 
 export default function UpdatePlanButton({ planId }: { planId: string }) {
   const router = useRouter();
@@ -41,45 +42,36 @@ export default function UpdatePlanButton({ planId }: { planId: string }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={handleUpdate}
-            disabled={isPending}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            loading={isPending}
+            icon={<RefreshCw className="h-4 w-4" />}
           >
-            {isPending ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Mise à jour en cours...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4" />
-                Lancer la mise à jour
-              </>
-            )}
-          </button>
-          <button
+            {isPending ? "Mise à jour en cours..." : "Lancer la mise à jour"}
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => {
               setShowOptions(false);
               setStartDate("");
             }}
             disabled={isPending}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-blue-100"
           >
             Annuler
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <button
+    <Button
+      variant="ghost-primary"
+      size="sm"
       onClick={() => setShowOptions(true)}
-      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100"
+      icon={<RefreshCw className="h-4 w-4" />}
     >
-      <RefreshCw className="h-4 w-4" />
       Adapter le plan
-    </button>
+    </Button>
   );
 }

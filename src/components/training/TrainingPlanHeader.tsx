@@ -1,6 +1,6 @@
 import { Target, Calendar, CalendarCheck, Clock } from "lucide-react";
 import GoalProbabilityBadge from "./GoalProbabilityBadge";
-import ProgressBar from "@/components/shared/ProgressBar";
+import { ProgressBar, Badge } from "@/components/shared";
 
 interface Props {
   plan: {
@@ -38,9 +38,9 @@ export default function TrainingPlanHeader({ plan }: Props) {
       </h1>
 
       <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
-        <span className="rounded-full bg-blue-100 px-3 py-0.5 text-xs font-medium capitalize text-blue-700">
+        <Badge color="blue" size="md" className="capitalize">
           {plan.raceType}
-        </span>
+        </Badge>
         {plan.startDate && (
           <span className="flex items-center gap-1">
             <CalendarCheck className="h-4 w-4" />

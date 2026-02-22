@@ -12,8 +12,7 @@ import {
 } from "lucide-react";
 import type { FatigueTrendData } from "@/actions/health";
 import { polylinePath, scaleLinear } from "@/lib/chart-utils";
-import Card from "@/components/shared/Card";
-import EmptyState from "@/components/shared/EmptyState";
+import { Card, EmptyState, Badge } from "@/components/shared";
 
 interface Props {
   data: FatigueTrendData;
@@ -51,18 +50,18 @@ function fatigueLabel(score: number) {
     return {
       text: "Fatigué",
       icon: AlertTriangle,
-      color: "text-red-600 bg-red-50 border-red-200",
+      badgeColor: "red" as const,
     };
   if (score >= 35)
     return {
       text: "Modéré",
       icon: Zap,
-      color: "text-orange-600 bg-orange-50 border-orange-200",
+      badgeColor: "orange" as const,
     };
   return {
     text: "Frais",
     icon: Smile,
-    color: "text-green-600 bg-green-50 border-green-200",
+    badgeColor: "green" as const,
   };
 }
 
@@ -171,12 +170,13 @@ export default function FatigueTrendCard({ data }: Props) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${status.color}`}
+          <Badge
+            color={status.badgeColor}
+            variant="outline"
+            icon={<StatusIcon className="h-3.5 w-3.5" />}
           >
-            <StatusIcon className="h-3.5 w-3.5" />
             {status.text}
-          </span>
+          </Badge>
           <span
             className={`text-xl font-bold ${fatigueColor(currentFatigue)}`}
           >

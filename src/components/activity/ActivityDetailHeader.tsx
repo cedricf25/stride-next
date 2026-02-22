@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, Clock, Gauge, Heart, Mountain, Footprints } from "lucide-react";
+import { Calendar, MapPin, Clock, Gauge, Heart, Mountain, Footprints } from "lucide-react";
 import { formatDistance, formatDuration, formatPace, formatDate } from "@/lib/format";
-import StatItem from "@/components/shared/StatItem";
+import { StatItem, BackLink } from "@/components/shared";
 
 interface Props {
   activity: {
@@ -32,13 +31,7 @@ export default function ActivityDetailHeader({ activity }: Props) {
 
   return (
     <div>
-      <Link
-        href="/"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour
-      </Link>
+      <BackLink href="/" label="Retour" />
 
       <h1 className="text-2xl font-bold text-gray-900">{activity.activityName}</h1>
       <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">

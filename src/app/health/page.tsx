@@ -6,6 +6,7 @@ import RestingHRChart from "@/components/health/RestingHRChart";
 import WeightChart from "@/components/health/WeightChart";
 import StepsChart from "@/components/health/StepsChart";
 import BodyBatteryCard from "@/components/health/BodyBatteryCard";
+import { PageContainer } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function HealthPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <PageContainer>
       <h1 className="mb-6 text-2xl font-bold text-gray-900">Santé</h1>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -41,6 +42,6 @@ export default async function HealthPage() {
           </Link>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }
