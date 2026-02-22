@@ -42,13 +42,13 @@ export default function SyncButton({
       <button
         onClick={() => handleSync()}
         disabled={syncing}
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)] disabled:opacity-50"
       >
         <RefreshCw className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} />
         {syncing ? "Synchronisation..." : "Synchroniser"}
       </button>
       {syncDate && (
-        <p className="px-3 pt-1 text-xs text-gray-400">
+        <p className="px-3 pt-1 text-xs text-[var(--text-muted)]">
           {formatSyncDate(syncDate)}
         </p>
       )}

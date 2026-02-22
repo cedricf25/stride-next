@@ -12,7 +12,7 @@ export default async function DashboardPage() {
 
   return (
     <PageContainer>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
 
       {error && (
         <AlertBanner
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
 
       {/* Activities */}
       <section className="mt-8">
-        <h2 className="mb-4 text-xl font-bold text-gray-900">
+        <h2 className="mb-4 text-xl font-bold text-[var(--text-primary)]">
           Dernières courses
         </h2>
         <ActivityList activities={activities} />

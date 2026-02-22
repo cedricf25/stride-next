@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   description: "Dashboard de course à pied avec Garmin et Gemini AI",
 };
 
+const themeScript = `(function(){try{var t=JSON.parse(localStorage.getItem("stride-theme"));if(t==="dark")document.documentElement.classList.add("dark")}catch(e){}})();`;
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -24,15 +26,18 @@ export default async function RootLayout({
 
   if (!dbOk) {
     return (
-      <html lang="fr">
+      <html lang="fr" suppressHydrationWarning>
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        </head>
         <body className={`${inter.className} antialiased`}>
-          <div className="flex h-screen items-center justify-center bg-gray-50 p-8">
-            <div className="max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+          <div className="flex h-screen items-center justify-center p-8">
+            <div className="max-w-md rounded-2xl border border-red-200 bg-[var(--bg-surface)] p-8 text-center shadow-sm">
               <DatabaseZap className="mx-auto mb-4 h-12 w-12 text-red-400" />
-              <h1 className="text-lg font-bold text-gray-900">
+              <h1 className="text-lg font-bold text-[var(--text-primary)]">
                 Base de données inaccessible
               </h1>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-[var(--text-tertiary)]">
                 Le conteneur MariaDB ne semble pas démarré. Lance-le puis
                 rafraîchis la page.
               </p>
@@ -49,7 +54,10 @@ export default async function RootLayout({
   const user = await getOrCreateUser();
 
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${inter.className} antialiased`}>
         <div className="flex h-screen">
           <Sidebar lastSyncAt={user.lastSyncAt?.toISOString() ?? null} />

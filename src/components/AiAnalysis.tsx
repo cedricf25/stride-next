@@ -31,11 +31,11 @@ export default function AiAnalysis() {
             <div className="h-4 w-2/3 animate-pulse rounded-full bg-purple-200/60" />
           </div>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-xl border-l-4 border-l-gray-200 bg-white shadow-sm p-5 space-y-3">
-              <div className="h-4 w-1/3 animate-pulse rounded-full bg-gray-200" />
-              <div className="h-3 w-full animate-pulse rounded-full bg-gray-100" />
-              <div className="h-3 w-5/6 animate-pulse rounded-full bg-gray-100" />
-              <div className="h-3 w-4/5 animate-pulse rounded-full bg-gray-100" />
+            <div key={i} className="rounded-xl border-l-4 border-l-[var(--bg-subtle)] bg-[var(--bg-surface)] shadow-sm p-5 space-y-3">
+              <div className="h-4 w-1/3 animate-pulse rounded-full bg-[var(--bg-subtle)]" />
+              <div className="h-3 w-full animate-pulse rounded-full bg-[var(--bg-muted)]" />
+              <div className="h-3 w-5/6 animate-pulse rounded-full bg-[var(--bg-muted)]" />
+              <div className="h-3 w-4/5 animate-pulse rounded-full bg-[var(--bg-muted)]" />
             </div>
           ))}
         </div>

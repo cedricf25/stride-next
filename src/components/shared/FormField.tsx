@@ -17,11 +17,11 @@ export default function FormField({
     <div className={className}>
       <label
         htmlFor={htmlFor}
-        className="mb-2 block text-sm font-medium text-gray-700"
+        className="mb-2 block text-sm font-medium text-[var(--text-secondary)]"
       >
         {label}
         {labelSuffix && (
-          <span className="ml-1 font-normal text-gray-400">{labelSuffix}</span>
+          <span className="ml-1 font-normal text-[var(--text-muted)]">{labelSuffix}</span>
         )}
       </label>
       {children}

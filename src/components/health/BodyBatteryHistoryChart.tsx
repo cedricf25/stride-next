@@ -56,7 +56,7 @@ export default function BodyBatteryHistoryChart({ data }: Props) {
       title="Body Battery — Historique"
       legend={
         <ChartLegend
-          className="mt-2 flex gap-4 text-xs text-gray-500"
+          className="mt-2 flex gap-4 text-xs text-[var(--text-tertiary)]"
           items={[
             { label: "Fin de nuit", color: "bg-green-500", shape: "line" },
             { label: "Début de nuit", color: "bg-gray-300", shape: "dashed" },
@@ -83,8 +83,8 @@ export default function BodyBatteryHistoryChart({ data }: Props) {
           const y = yScale(v);
           return (
             <g key={v}>
-              <line x1={pad.left} y1={y} x2={pad.left + chartW} y2={y} stroke="#e5e7eb" />
-              <text x={pad.left - 5} y={y + 3} textAnchor="end" fontSize="8" className="fill-gray-400">
+              <line x1={pad.left} y1={y} x2={pad.left + chartW} y2={y} stroke="var(--chart-grid)" />
+              <text x={pad.left - 5} y={y + 3} textAnchor="end" fontSize="8" className="fill-[var(--text-muted)]">
                 {v}
               </text>
             </g>
@@ -116,7 +116,7 @@ export default function BodyBatteryHistoryChart({ data }: Props) {
               y={H - 5}
               textAnchor="middle"
               fontSize="8"
-              className="fill-gray-400"
+              className="fill-[var(--text-muted)]"
             >
               {formatShortDate(new Date(d.calendarDate))}
             </text>

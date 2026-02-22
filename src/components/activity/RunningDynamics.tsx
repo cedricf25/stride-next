@@ -23,12 +23,12 @@ function Bar({ label, value, unit, max, color }: {
   return (
     <div>
       <div className="mb-1 flex items-center justify-between text-sm">
-        <span className="text-gray-600">{label}</span>
-        <span className="font-medium text-gray-900">
+        <span className="text-[var(--text-secondary)]">{label}</span>
+        <span className="font-medium text-[var(--text-primary)]">
           {value} {unit}
         </span>
       </div>
-      <div className="h-2 w-full rounded-full bg-gray-100">
+      <div className="h-2 w-full rounded-full bg-[var(--bg-muted)]">
         <div
           className={`h-2 rounded-full ${color}`}
           style={{ width: `${pct}%` }}
@@ -50,7 +50,7 @@ export default function RunningDynamics({ activity }: Props) {
 
   return (
     <Card>
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">Dynamique de course</h3>
+      <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Dynamique de course</h3>
       <div className="space-y-4">
         {activity.averageCadence != null && (
           <Bar

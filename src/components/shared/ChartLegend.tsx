@@ -24,7 +24,7 @@ function Indicator({ color, shape = "square" }: Pick<LegendItem, "color" | "shap
 
 export default function ChartLegend({ items, className }: ChartLegendProps) {
   return (
-    <div className={className ?? "mt-3 flex flex-wrap gap-3 text-xs text-gray-500"}>
+    <div className={className ?? "mt-3 flex flex-wrap gap-3 text-xs text-[var(--text-tertiary)]"}>
       {items.map((item) => (
         <span key={item.label} className="flex items-center gap-1">
           <Indicator color={item.color} shape={item.shape} />

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Heart, Target, Timer, List } from "lucide-react";
+import { Activity, Heart, Target, Timer, List, Settings } from "lucide-react";
 import SyncButton from "./SyncButton";
 
 const navItems = [
@@ -17,11 +17,11 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-gray-200 bg-white">
+    <aside className="flex h-screen w-60 flex-col border-r border-[var(--border-default)] bg-[var(--bg-surface)]">
       {/* Logo */}
-      <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-5">
+      <div className="flex items-center gap-2 border-b border-[var(--border-default)] px-5 py-5">
         <Activity className="h-6 w-6 text-blue-600" />
-        <span className="text-lg font-bold text-gray-900">Stride</span>
+        <span className="text-lg font-bold text-[var(--text-primary)]">Stride</span>
       </div>
 
       {/* Navigation */}
@@ -40,7 +40,7 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-blue-50 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -50,8 +50,23 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
         })}
       </nav>
 
+      {/* Settings */}
+      <div className="border-t border-[var(--border-default)] px-3 py-2">
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            pathname === "/settings"
+              ? "bg-blue-50 text-blue-700"
+              : "text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]"
+          }`}
+        >
+          <Settings className="h-5 w-5" />
+          Paramètres
+        </Link>
+      </div>
+
       {/* Sync button */}
-      <div className="border-t border-gray-200 px-3 py-3">
+      <div className="border-t border-[var(--border-default)] px-3 py-3">
         <SyncButton lastSyncAt={lastSyncAt} />
       </div>
     </aside>

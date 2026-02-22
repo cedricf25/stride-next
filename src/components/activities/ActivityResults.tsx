@@ -66,7 +66,7 @@ export default function ActivityResults() {
       <ActivityFilters filters={filters} onChange={handleFiltersChange} />
 
       {total !== null && (
-        <p className="mb-4 text-sm text-gray-500">
+        <p className="mb-4 text-sm text-[var(--text-tertiary)]">
           {total === 0
             ? "Aucune activité trouvée"
             : `${total} activité${total > 1 ? "s" : ""}`}

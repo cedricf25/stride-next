@@ -19,11 +19,11 @@ function teColor(value: number): string {
 export default function ActivityCard({ activity }: ActivityCardProps) {
   return (
     <Link href={`/activities/${activity.id}`}>
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-        <h3 className="mb-1 text-lg font-semibold text-gray-900">
+      <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-sm transition-shadow hover:shadow-md">
+        <h3 className="mb-1 text-lg font-semibold text-[var(--text-primary)]">
           {activity.name}
         </h3>
-        <div className="mb-4 flex items-center gap-1.5 text-sm text-gray-500">
+        <div className="mb-4 flex items-center gap-1.5 text-sm text-[var(--text-tertiary)]">
           <Calendar className="h-4 w-4" />
           <span>{activity.date}</span>
         </div>
@@ -41,8 +41,8 @@ export default function ActivityCard({ activity }: ActivityCardProps) {
             <Zap className="h-4 w-4 text-yellow-500" />
             <div className="flex-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Training Effect</span>
-                <span className="font-medium text-gray-700">{activity.aerobicTE.toFixed(1)}</span>
+                <span className="text-[var(--text-tertiary)]">Training Effect</span>
+                <span className="font-medium text-[var(--text-secondary)]">{activity.aerobicTE.toFixed(1)}</span>
               </div>
               <ProgressBar
                 value={Math.min((activity.aerobicTE / 5) * 100, 100)}

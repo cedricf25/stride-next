@@ -41,7 +41,7 @@ export default function StepsChart({ data }: Props) {
       title="Pas quotidiens"
       legend={
         <ChartLegend
-          className="mt-2 flex gap-4 text-xs text-gray-500"
+          className="mt-2 flex gap-4 text-xs text-[var(--text-tertiary)]"
           items={[
             { label: "10 000+", color: "bg-green-500" },
             { label: "7 000+", color: "bg-blue-500" },
@@ -81,7 +81,7 @@ export default function StepsChart({ data }: Props) {
                   y={H - 5}
                   textAnchor="middle"
                   fontSize="8"
-                  className="fill-gray-400"
+                  className="fill-[var(--text-muted)]"
                 >
                   {formatShortDate(new Date(d.calendarDate))}
                 </text>

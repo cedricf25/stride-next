@@ -168,7 +168,7 @@ function formatContent(text: string): string {
       // Process bold
       let processed = para.replace(
         /\*\*(.*?)\*\*/g,
-        '<strong class="font-semibold text-gray-900">$1</strong>'
+        '<strong class="font-semibold text-[var(--text-primary)]">$1</strong>'
       );
 
       const lines = processed.split("\n");
@@ -181,12 +181,12 @@ function formatContent(text: string): string {
           // Flush accumulated text as a paragraph
           if (textLines.length > 0) {
             parts.push(
-              `<p class="mb-3 leading-relaxed text-gray-600">${textLines.join(" ")}</p>`
+              `<p class="mb-3 leading-relaxed text-[var(--text-secondary)]">${textLines.join(" ")}</p>`
             );
             textLines = [];
           }
           parts.push(
-            `<div class="flex gap-2.5 items-start py-1.5"><span class="mt-[7px] h-1.5 w-1.5 rounded-full bg-gray-400 flex-shrink-0"></span><span class="text-gray-600 leading-relaxed">${bulletMatch[1]}</span></div>`
+            `<div class="flex gap-2.5 items-start py-1.5"><span class="mt-[7px] h-1.5 w-1.5 rounded-full bg-[var(--text-muted)] flex-shrink-0"></span><span class="text-[var(--text-secondary)] leading-relaxed">${bulletMatch[1]}</span></div>`
           );
         } else if (line.trim()) {
           textLines.push(line.trim());
@@ -195,7 +195,7 @@ function formatContent(text: string): string {
 
       if (textLines.length > 0) {
         parts.push(
-          `<p class="mb-3 leading-relaxed text-gray-600">${textLines.join(" ")}</p>`
+          `<p class="mb-3 leading-relaxed text-[var(--text-secondary)]">${textLines.join(" ")}</p>`
         );
       }
 
@@ -213,7 +213,7 @@ export default function MarkdownContent({ content }: { content: string }) {
   if (sections.length === 0) {
     return (
       <div
-        className="rounded-2xl border border-gray-200 bg-white p-6"
+        className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6"
         dangerouslySetInnerHTML={{ __html: formatContent(content) }}
       />
     );
@@ -235,7 +235,7 @@ export default function MarkdownContent({ content }: { content: string }) {
         return (
           <div
             key={section.number}
-            className={`rounded-xl border-l-4 ${theme.border} bg-white shadow-sm overflow-hidden`}
+            className={`rounded-xl border-l-4 ${theme.border} bg-[var(--bg-surface)] shadow-sm overflow-hidden`}
           >
             {/* Section header */}
             <div className={`${theme.bg} px-5 py-3`}>

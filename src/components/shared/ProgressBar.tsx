@@ -19,7 +19,7 @@ export default function ProgressBar({
   const h = heightMap[height];
 
   return (
-    <div className={`${h} w-full rounded-full bg-gray-100 ${className ?? ""}`}>
+    <div className={`${h} w-full rounded-full bg-[var(--bg-muted)] ${className ?? ""}`}>
       <div
         className={`${h} rounded-full ${color}`}
         style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}

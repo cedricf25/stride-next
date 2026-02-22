@@ -20,11 +20,11 @@ export default function DataTable<T>({
 }: DataTableProps<T>) {
   return (
     <div
-      className={`overflow-x-auto rounded-xl border border-gray-200 bg-white ${className ?? ""}`}
+      className={`overflow-x-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] ${className ?? ""}`}
     >
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+          <tr className="border-b border-[var(--border-subtle)] text-left text-xs text-[var(--text-tertiary)]">
             {columns.map((col) => (
               <th key={col.key} className="px-4 py-3 font-medium">
                 {col.header}
@@ -36,12 +36,12 @@ export default function DataTable<T>({
           {data.map((row) => (
             <tr
               key={rowKey(row)}
-              className="border-b border-gray-50 hover:bg-gray-50"
+              className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)]"
             >
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className={col.className ?? "px-4 py-2 text-gray-600"}
+                  className={col.className ?? "px-4 py-2 text-[var(--text-secondary)]"}
                 >
                   {col.render(row)}
                 </td>

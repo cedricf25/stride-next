@@ -15,7 +15,7 @@ export default function ChartContainer({
 }: ChartContainerProps) {
   return (
     <Card className={className}>
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">{title}</h3>
+      <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
       {children}
       {legend}
     </Card>

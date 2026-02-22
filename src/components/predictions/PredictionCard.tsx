@@ -36,12 +36,12 @@ export default function PredictionCard({
             {badge}
           </span>
           <div>
-            <h3 className="font-semibold text-gray-900">{prediction.label}</h3>
-            <p className="text-xs text-gray-500">{prediction.predictedPace}</p>
+            <h3 className="font-semibold text-[var(--text-primary)]">{prediction.label}</h3>
+            <p className="text-xs text-[var(--text-tertiary)]">{prediction.predictedPace}</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xl font-bold text-gray-900">
+          <p className="text-xl font-bold text-[var(--text-primary)]">
             {prediction.predictedTime}
           </p>
         </div>
@@ -50,7 +50,7 @@ export default function PredictionCard({
       {/* Confidence */}
       <div className="mt-4">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-500">Fiabilité</span>
+          <span className="text-[var(--text-tertiary)]">Fiabilité</span>
           <Badge color={confidenceBadgeColor(prediction.confidence)} variant="outline">
             {prediction.confidence}%
           </Badge>
@@ -62,7 +62,7 @@ export default function PredictionCard({
         />
       </div>
 
-      <p className="mt-3 text-xs leading-relaxed text-gray-500">
+      <p className="mt-3 text-xs leading-relaxed text-[var(--text-tertiary)]">
         {prediction.comment}
       </p>
     </Card>

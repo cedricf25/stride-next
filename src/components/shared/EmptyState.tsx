@@ -20,16 +20,16 @@ export default function EmptyState({
   if (variant === "dashed") {
     return (
       <div
-        className={`rounded-2xl border border-dashed border-gray-300 p-12 text-center ${className ?? ""}`}
+        className={`rounded-2xl border border-dashed border-[var(--border-default)] p-12 text-center ${className ?? ""}`}
       >
         {icon && (
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center text-gray-400">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center text-[var(--text-muted)]">
             {icon}
           </div>
         )}
-        <p className="text-gray-500">{message}</p>
+        <p className="text-[var(--text-tertiary)]">{message}</p>
         {subtitle && (
-          <p className="mt-1 text-sm text-gray-400">{subtitle}</p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">{subtitle}</p>
         )}
       </div>
     );
@@ -38,9 +38,9 @@ export default function EmptyState({
   return (
     <Card className={className}>
       {title && (
-        <h3 className="mb-4 text-lg font-semibold text-gray-900">{title}</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
       )}
-      <p className="text-sm text-gray-500">{message}</p>
+      <p className="text-sm text-[var(--text-tertiary)]">{message}</p>
     </Card>
   );
 }

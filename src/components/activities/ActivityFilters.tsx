@@ -88,13 +88,13 @@ export default function ActivityFilters({ filters, onChange }: Props) {
     <div className="mb-6 space-y-3">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Rechercher une activité..."
-          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] py-2 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
@@ -112,7 +112,7 @@ export default function ActivityFilters({ filters, onChange }: Props) {
           </FilterChip>
         ))}
 
-        <div className="mx-1 h-4 w-px bg-gray-300" />
+        <div className="mx-1 h-4 w-px bg-[var(--border-default)]" />
 
         {/* Distance chips */}
         {DISTANCES.map((d) => {
@@ -130,7 +130,7 @@ export default function ActivityFilters({ filters, onChange }: Props) {
           );
         })}
 
-        <div className="mx-1 h-4 w-px bg-gray-300" />
+        <div className="mx-1 h-4 w-px bg-[var(--border-default)]" />
 
         {/* Sort chips */}
         {SORT_OPTIONS.map((s) => {
@@ -156,7 +156,7 @@ export default function ActivityFilters({ filters, onChange }: Props) {
         {/* Clear filters */}
         {hasActiveFilters && (
           <>
-            <div className="mx-1 h-4 w-px bg-gray-300" />
+            <div className="mx-1 h-4 w-px bg-[var(--border-default)]" />
             <FilterChip
               active
               activeColor="red"

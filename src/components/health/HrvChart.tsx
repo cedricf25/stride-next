@@ -50,8 +50,8 @@ export default function HrvChart({ data }: Props) {
           const val = Math.round(min + (max - min) * t);
           return (
             <g key={t}>
-              <line x1={pad.left} y1={y} x2={pad.left + chartW} y2={y} stroke="#f3f4f6" />
-              <text x={pad.left - 5} y={y + 3} textAnchor="end" fontSize="8" className="fill-gray-400">
+              <line x1={pad.left} y1={y} x2={pad.left + chartW} y2={y} stroke="var(--chart-grid)" />
+              <text x={pad.left - 5} y={y + 3} textAnchor="end" fontSize="8" className="fill-[var(--text-muted)]">
                 {val}
               </text>
             </g>
@@ -89,7 +89,7 @@ export default function HrvChart({ data }: Props) {
               y={H - 5}
               textAnchor="middle"
               fontSize="8"
-              className="fill-gray-400"
+              className="fill-[var(--text-muted)]"
             >
               {formatShortDate(new Date(d.calendarDate))}
             </text>

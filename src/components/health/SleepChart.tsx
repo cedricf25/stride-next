@@ -76,7 +76,7 @@ export default function SleepChart({ data }: Props) {
                   x={x + barW / 2}
                   y={H - 5}
                   textAnchor="middle"
-                  className="fill-gray-400"
+                  className="fill-[var(--text-muted)]"
                   fontSize="8"
                 >
                   {formatShortDate(new Date(d.calendarDate))}

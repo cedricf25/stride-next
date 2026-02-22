@@ -30,7 +30,7 @@ export default async function TrainingPage() {
   return (
     <PageContainer>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Entraînement</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Entraînement</h1>
         <LinkButton
           href="/training/new"
           icon={<Plus className="h-4 w-4" />}
@@ -66,16 +66,16 @@ export default async function TrainingPage() {
 
             return (
               <a key={plan.id} href={`/training/${plan.id}`}>
-                <div className="rounded-xl border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md">
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                           {plan.name}
                         </h3>
                         {statusBadge(plan.status)}
                       </div>
-                      <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
+                      <div className="mt-1 flex items-center gap-4 text-sm text-[var(--text-tertiary)]">
                         <span className="capitalize">{plan.raceType}</span>
                         {plan.raceDate && (
                           <span className="flex items-center gap-1">
@@ -87,10 +87,10 @@ export default async function TrainingPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
                         {completedSessions}/{totalSessions}
                       </p>
-                      <p className="text-xs text-gray-500">séances</p>
+                      <p className="text-xs text-[var(--text-tertiary)]">séances</p>
                     </div>
                   </div>
 

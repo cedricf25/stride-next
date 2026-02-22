@@ -22,7 +22,7 @@ function teLabel(value: number): string {
 }
 
 function teColor(value: number): string {
-  if (value < 2) return "text-gray-500";
+  if (value < 2) return "text-[var(--text-tertiary)]";
   if (value < 3) return "text-blue-600";
   if (value < 4) return "text-green-600";
   if (value < 5) return "text-orange-600";
@@ -39,7 +39,7 @@ function Gauge({ value, label, maxValue = 5 }: { value: number; label: string; m
         <path
           d="M 10 65 A 50 50 0 0 1 110 65"
           fill="none"
-          stroke="#e5e7eb"
+          stroke="var(--border-default)"
           strokeWidth="8"
           strokeLinecap="round"
         />
@@ -53,11 +53,11 @@ function Gauge({ value, label, maxValue = 5 }: { value: number; label: string; m
           strokeDasharray={`${(angle / 180) * 157} 157`}
           className={teColor(value)}
         />
-        <text x="60" y="58" textAnchor="middle" className="fill-gray-900 text-xl font-bold" fontSize="20">
+        <text x="60" y="58" textAnchor="middle" className="fill-[var(--text-primary)] text-xl font-bold" fontSize="20">
           {value.toFixed(1)}
         </text>
       </svg>
-      <span className="mt-1 text-xs text-gray-500">{label}</span>
+      <span className="mt-1 text-xs text-[var(--text-tertiary)]">{label}</span>
       <span className={`text-xs font-medium ${teColor(value)}`}>{teLabel(value)}</span>
     </div>
   );
@@ -81,29 +81,29 @@ export default function TrainingEffectCard({ activity }: Props) {
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4">
+      <div className="mt-4 grid grid-cols-3 gap-4 border-t border-[var(--border-subtle)] pt-4">
         {activity.trainingStressScore != null && (
           <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-lg font-semibold text-[var(--text-primary)]">
               {Math.round(activity.trainingStressScore)}
             </p>
-            <p className="text-xs text-gray-500">TSS</p>
+            <p className="text-xs text-[var(--text-tertiary)]">TSS</p>
           </div>
         )}
         {activity.intensityFactor != null && (
           <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-lg font-semibold text-[var(--text-primary)]">
               {activity.intensityFactor.toFixed(2)}
             </p>
-            <p className="text-xs text-gray-500">IF</p>
+            <p className="text-xs text-[var(--text-tertiary)]">IF</p>
           </div>
         )}
         {activity.vo2max != null && (
           <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-lg font-semibold text-[var(--text-primary)]">
               {activity.vo2max.toFixed(0)}
             </p>
-            <p className="text-xs text-gray-500">VO2max</p>
+            <p className="text-xs text-[var(--text-tertiary)]">VO2max</p>
           </div>
         )}
       </div>

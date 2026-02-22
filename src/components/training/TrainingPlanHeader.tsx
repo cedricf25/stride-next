@@ -32,12 +32,12 @@ export default function TrainingPlanHeader({ plan }: Props) {
 
   return (
     <div>
-      <h1 className="flex items-center gap-3 text-2xl font-bold text-gray-900">
+      <h1 className="flex items-center gap-3 text-2xl font-bold text-[var(--text-primary)]">
         <Target className="h-7 w-7 text-blue-600" />
         {plan.name}
       </h1>
 
-      <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+      <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-[var(--text-tertiary)]">
         <Badge color="blue" size="md" className="capitalize">
           {plan.raceType}
         </Badge>
@@ -86,7 +86,7 @@ export default function TrainingPlanHeader({ plan }: Props) {
         <div className="flex-1">
           <ProgressBar value={progress} color="bg-blue-500" height="md" />
         </div>
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-[var(--text-secondary)]">
           {completedSessions}/{totalSessions} séances ({progress}%)
         </span>
       </div>

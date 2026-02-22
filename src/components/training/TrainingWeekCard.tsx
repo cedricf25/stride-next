@@ -56,23 +56,23 @@ export default function TrainingWeekCard({ week, planStartDate }: Props) {
       >
         <div className="flex items-center gap-3">
           {open ? (
-            <ChevronDown className="h-5 w-5 text-gray-400" />
+            <ChevronDown className="h-5 w-5 text-[var(--text-muted)]" />
           ) : (
-            <ChevronRight className="h-5 w-5 text-gray-400" />
+            <ChevronRight className="h-5 w-5 text-[var(--text-muted)]" />
           )}
           <div>
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-[var(--text-primary)]">
               Semaine {week.weekNumber}
             </span>
             {planStartDate && (
-              <span className="ml-2 text-sm text-gray-400">
+              <span className="ml-2 text-sm text-[var(--text-muted)]">
                 {formatWeekDates(planStartDate, week.weekNumber)}
               </span>
             )}
-            <span className="ml-2 text-sm text-gray-500">{week.theme}</span>
+            <span className="ml-2 text-sm text-[var(--text-tertiary)]">{week.theme}</span>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm text-gray-500">
+        <div className="flex items-center gap-4 text-sm text-[var(--text-tertiary)]">
           {week.totalVolume != null && (
             <span>{week.totalVolume} km</span>
           )}
@@ -83,7 +83,7 @@ export default function TrainingWeekCard({ week, planStartDate }: Props) {
       </button>
 
       {open && (
-        <div className="border-t border-gray-100 px-6 py-4">
+        <div className="border-t border-[var(--border-subtle)] px-6 py-4">
           <div className="space-y-3">
             {week.sessions.map((session) => (
               <TrainingSessionCard key={session.id} session={session} />

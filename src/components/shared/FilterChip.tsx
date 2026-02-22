@@ -19,7 +19,7 @@ const activeClasses: Record<ChipColor, string> = {
 
 const BASE =
   "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors";
-const INACTIVE = "bg-gray-100 text-gray-600 hover:bg-gray-200";
+const INACTIVE = "bg-[var(--bg-muted)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]";
 
 export default function FilterChip({
   active,

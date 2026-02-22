@@ -16,7 +16,7 @@ const softClasses: Record<BadgeColor, string> = {
   green: "bg-green-100 text-green-700",
   red: "bg-red-100 text-red-700",
   orange: "bg-orange-100 text-orange-700",
-  gray: "bg-gray-100 text-gray-700",
+  gray: "bg-[var(--bg-muted)] text-[var(--text-secondary)]",
   purple: "bg-purple-100 text-purple-700",
 };
 
@@ -25,7 +25,7 @@ const outlineClasses: Record<BadgeColor, string> = {
   green: "border border-green-200 bg-green-50 text-green-700",
   red: "border border-red-200 bg-red-50 text-red-700",
   orange: "border border-orange-200 bg-orange-50 text-orange-700",
-  gray: "border border-gray-200 bg-gray-50 text-gray-700",
+  gray: "border border-[var(--border-default)] bg-[var(--bg-surface-hover)] text-[var(--text-secondary)]",
   purple: "border border-purple-200 bg-purple-50 text-purple-700",
 };
 

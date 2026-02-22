@@ -33,8 +33,8 @@ export default function ActivityDetailHeader({ activity }: Props) {
     <div>
       <BackLink href="/" label="Retour" />
 
-      <h1 className="text-2xl font-bold text-gray-900">{activity.activityName}</h1>
-      <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
+      <h1 className="text-2xl font-bold text-[var(--text-primary)]">{activity.activityName}</h1>
+      <div className="mt-1 flex items-center gap-3 text-sm text-[var(--text-tertiary)]">
         <span className="flex items-center gap-1">
           <Calendar className="h-4 w-4" />
           {formatDate(activity.startTimeLocal.toISOString())}

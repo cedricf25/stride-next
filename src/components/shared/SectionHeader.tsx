@@ -23,7 +23,7 @@ export default function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <div className={`flex items-center justify-between ${className ?? ""}`}>
-      <Tag className={`flex items-center gap-2 ${sizeMap[size]} font-semibold text-gray-900`}>
+      <Tag className={`flex items-center gap-2 ${sizeMap[size]} font-semibold text-[var(--text-primary)]`}>
         {icon}
         {title}
       </Tag>

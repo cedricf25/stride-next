@@ -122,7 +122,7 @@ export default function TrainingPlanForm() {
           value={state.startDate}
           onChange={(e) => dispatch({ type: "SET_FIELD", field: "startDate", value: e.target.value })}
         />
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
           Si tu t&apos;entraînes déjà, indique la date de début. Les semaines
           passées seront incluses et marquées comme complétées.
         </p>

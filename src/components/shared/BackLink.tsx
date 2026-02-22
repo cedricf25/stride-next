@@ -15,7 +15,7 @@ export default function BackLink({
   return (
     <Link
       href={href}
-      className={`mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 ${className ?? ""}`}
+      className={`mb-6 inline-flex items-center gap-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] ${className ?? ""}`}
     >
       <ArrowLeft className="h-4 w-4" />
       {label}
