@@ -42,6 +42,10 @@ if [ ! -f ".env.production" ]; then
     exit 1
 fi
 
+# Create symlink .env -> .env.production for docker-compose build args
+ln -sf .env.production .env
+print_status "Lien .env -> .env.production créé"
+
 # Check if docker is running
 if ! docker info > /dev/null 2>&1; then
     print_error "Docker n'est pas démarré ou vous n'avez pas les permissions"
