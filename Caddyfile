@@ -1,0 +1,29 @@
+# Configuration Caddy pour Stride Dashboard
+# Remplacer {$DOMAIN} par votre domaine ou utiliser :80 pour HTTP seulement
+
+# Option 1: Avec un domaine (HTTPS automatique)
+# Décommentez et remplacez par votre domaine
+# stride.example.com {
+#     reverse_proxy app:3000
+#     encode gzip
+# }
+
+# Option 2: Sans domaine (HTTP seulement via IP)
+# Utilisé par défaut pour les tests
+:80 {
+    reverse_proxy app:3000
+    encode gzip
+}
+
+# Option 3: HTTPS avec domaine (à activer en production)
+# {$DOMAIN:stride.localhost} {
+#     reverse_proxy app:3000
+#     encode gzip
+#
+#     # Headers de sécurité
+#     header {
+#         X-Content-Type-Options nosniff
+#         X-Frame-Options DENY
+#         Referrer-Policy strict-origin-when-cross-origin
+#     }
+# }
