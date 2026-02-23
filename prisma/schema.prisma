@@ -144,6 +144,7 @@ model Activity {
 
   splits                  ActivitySplit[]
   analysis                ActivityAnalysis?
+  linkedSession           TrainingSession?
 
   @@index([userId])
   @@index([startTimeLocal])
@@ -303,6 +304,11 @@ model TrainingSession {
   targetHRZone    String?  // ex: "Z2", "Z3-Z4"
   intensity       String   @default("moderate") // "low", "moderate", "high", "very_high"
   completed       Boolean  @default(false)
+
+  // Lien vers l'activité réelle correspondante
+  linkedActivityId  String?   @unique
+  linkedActivity    Activity? @relation(fields: [linkedActivityId], references: [id], onDelete: SetNull)
+  matchScore        Int?      // 0-100, qualité du match planifié/réalisé
 
   @@index([weekId])
 }

@@ -5,6 +5,7 @@ import TrainingWeekCard from "@/components/training/TrainingWeekCard";
 import DeletePlanButton from "@/components/training/DeletePlanButton";
 import UpdatePlanButton from "@/components/training/UpdatePlanButton";
 import PaceZonesCard from "@/components/training/PaceZonesCard";
+import PlanProgressWidget from "@/components/training/PlanProgressWidget";
 import { PageContainer, BackLink } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
@@ -37,11 +38,10 @@ export default async function TrainingPlanPage({
         </div>
       </div>
 
-      {paceZones && (
-        <div className="mt-4">
-          <PaceZonesCard {...paceZones} />
-        </div>
-      )}
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <PlanProgressWidget weeks={plan.weeks} />
+        {paceZones && <PaceZonesCard {...paceZones} />}
+      </div>
 
       <div className="mt-8 space-y-4">
         {plan.weeks.map((week) => (

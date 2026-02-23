@@ -274,7 +274,23 @@ export async function fetchTrainingPlan(planId: string) {
     where: { id: planId },
     include: {
       weeks: {
-        include: { sessions: true },
+        include: {
+          sessions: {
+            include: {
+              linkedActivity: {
+                select: {
+                  id: true,
+                  activityName: true,
+                  distance: true,
+                  duration: true,
+                  averageSpeed: true,
+                  averageHR: true,
+                  startTimeLocal: true,
+                },
+              },
+            },
+          },
+        },
         orderBy: { weekNumber: "asc" },
       },
     },
@@ -332,6 +348,180 @@ export async function fetchPaceZones() {
 
 export async function deleteTrainingPlan(planId: string) {
   await prisma.trainingPlan.delete({ where: { id: planId } });
+}
+
+// Mapping jour de la semaine français → numéro (lundi = 1, dimanche = 7)
+const dayOfWeekMap: Record<string, number> = {
+  lundi: 1,
+  mardi: 2,
+  mercredi: 3,
+  jeudi: 4,
+  vendredi: 5,
+  samedi: 6,
+  dimanche: 7,
+};
+
+// Mapping type de séance → types d'activité compatibles
+const sessionTypeCompatibility: Record<string, string[]> = {
+  easy: ["running", "trail_running"],
+  recovery: ["running", "trail_running"],
+  tempo: ["running", "trail_running"],
+  interval: ["running", "trail_running", "track_running"],
+  long_run: ["running", "trail_running"],
+  rest: [], // pas de matching pour les jours de repos
+};
+
+function getSessionDate(
+  planStartDate: Date,
+  weekNumber: number,
+  dayOfWeek: string
+): Date {
+  const dayNum = dayOfWeekMap[dayOfWeek.toLowerCase()] ?? 1;
+  const date = new Date(planStartDate);
+  // Semaine 1 commence à planStartDate, on ajuste au bon jour
+  const startDayOfWeek = date.getDay() === 0 ? 7 : date.getDay(); // getDay: 0=dim, 1=lun...
+  const daysToAdd = (weekNumber - 1) * 7 + (dayNum - startDayOfWeek);
+  date.setDate(date.getDate() + daysToAdd);
+  return date;
+}
+
+function isSameDay(d1: Date, d2: Date): boolean {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
+
+function computeMatchScore(
+  activity: {
+    distance: number;
+    duration: number;
+    activityType: string;
+    aerobicTrainingEffect: number | null;
+    anaerobicTrainingEffect: number | null;
+  },
+  session: {
+    sessionType: string;
+    distance: number | null;
+    duration: number | null;
+  }
+): number {
+  let score = 0;
+
+  // 1. Type compatible ? (30 points)
+  const compatibleTypes = sessionTypeCompatibility[session.sessionType] ?? [];
+  if (compatibleTypes.length === 0) return 0; // rest day
+  if (!compatibleTypes.includes(activity.activityType)) return 0;
+  score += 30;
+
+  // 2. Distance proche ? (35 points max)
+  if (session.distance && session.distance > 0) {
+    const activityDistanceKm = activity.distance / 1000;
+    const ratio = activityDistanceKm / session.distance;
+    // Écart de 0% = 35 points, écart de 50% = 0 points
+    score += Math.max(0, 35 - Math.abs(1 - ratio) * 70);
+  } else {
+    // Pas de distance planifiée, on donne des points par défaut
+    score += 20;
+  }
+
+  // 3. Durée proche ? (35 points max)
+  if (session.duration && session.duration > 0) {
+    const activityDurationMin = activity.duration / 60;
+    const ratio = activityDurationMin / session.duration;
+    // Écart de 0% = 35 points, écart de 50% = 0 points
+    score += Math.max(0, 35 - Math.abs(1 - ratio) * 70);
+  } else {
+    // Pas de durée planifiée, on donne des points par défaut
+    score += 20;
+  }
+
+  return Math.min(100, Math.round(score));
+}
+
+export async function matchActivitiesToPlans() {
+  const user = await getAuthenticatedUser();
+
+  // Récupérer tous les plans actifs avec leurs sessions
+  const plans = await prisma.trainingPlan.findMany({
+    where: { userId: user.id, status: "active" },
+    include: {
+      weeks: {
+        include: { sessions: true },
+        orderBy: { weekNumber: "asc" },
+      },
+    },
+  });
+
+  if (plans.length === 0) return { matched: 0 };
+
+  // Récupérer toutes les activités de l'utilisateur (non encore liées)
+  const activities = await prisma.activity.findMany({
+    where: {
+      userId: user.id,
+      linkedSession: null, // pas encore liée
+    },
+    orderBy: { startTimeLocal: "asc" },
+  });
+
+  let matchedCount = 0;
+
+  for (const plan of plans) {
+    if (!plan.startDate) continue;
+
+    for (const week of plan.weeks) {
+      for (const session of week.sessions) {
+        // Skip si déjà liée ou jour de repos
+        if (session.linkedActivityId) continue;
+        if (session.sessionType === "rest") continue;
+
+        // Calculer la date de cette séance
+        const sessionDate = getSessionDate(
+          plan.startDate,
+          week.weekNumber,
+          session.dayOfWeek
+        );
+
+        // Trouver les activités du même jour
+        const sameDayActivities = activities.filter((a) =>
+          isSameDay(a.startTimeLocal, sessionDate)
+        );
+
+        if (sameDayActivities.length === 0) continue;
+
+        // Calculer le score pour chaque activité et prendre la meilleure
+        let bestMatch: { activity: (typeof activities)[0]; score: number } | null = null;
+
+        for (const activity of sameDayActivities) {
+          const score = computeMatchScore(activity, session);
+          if (score >= 50 && (!bestMatch || score > bestMatch.score)) {
+            bestMatch = { activity, score };
+          }
+        }
+
+        if (bestMatch) {
+          // Lier l'activité à la session
+          await prisma.trainingSession.update({
+            where: { id: session.id },
+            data: {
+              linkedActivityId: bestMatch.activity.id,
+              matchScore: bestMatch.score,
+              completed: true,
+            },
+          });
+
+          // Retirer cette activité de la liste pour ne pas la lier plusieurs fois
+          const idx = activities.findIndex((a) => a.id === bestMatch!.activity.id);
+          if (idx !== -1) activities.splice(idx, 1);
+
+          matchedCount++;
+        }
+      }
+    }
+  }
+
+  return { matched: matchedCount };
 }
 
 export async function updateTrainingPlan(

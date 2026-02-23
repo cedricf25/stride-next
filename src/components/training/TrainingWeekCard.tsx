@@ -5,6 +5,16 @@ import TrainingSessionCard from "./TrainingSessionCard";
 import Card from "@/components/shared/Card";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 
+interface LinkedActivity {
+  id: string;
+  activityName: string;
+  distance: number;
+  duration: number;
+  averageSpeed: number | null;
+  averageHR: number | null;
+  startTimeLocal: Date;
+}
+
 interface Session {
   id: string;
   dayOfWeek: string;
@@ -17,6 +27,9 @@ interface Session {
   targetHRZone: string | null;
   intensity: string;
   completed: boolean;
+  linkedActivityId: string | null;
+  linkedActivity: LinkedActivity | null;
+  matchScore: number | null;
 }
 
 interface Props {

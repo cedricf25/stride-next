@@ -4,6 +4,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { prisma } from "@/lib/prisma";
 import { getGarminClient } from "@/lib/garmin-client";
 import { getAuthenticatedUser } from "@/lib/user";
+import { matchActivitiesToPlans } from "./training";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GarminRaw = any;
@@ -350,6 +351,7 @@ export async function syncAll() {
     activities: { synced: 0 },
     sleep: { synced: 0 },
     health: { synced: 0 },
+    matching: { matched: 0 },
   };
 
   try {
@@ -378,6 +380,14 @@ export async function syncAll() {
   } catch (e) {
     if (isRedirectError(e)) throw e;
     console.error("syncHealthMetrics failed:", e);
+  }
+
+  // Match activities to training plans
+  try {
+    results.matching = await matchActivitiesToPlans();
+  } catch (e) {
+    if (isRedirectError(e)) throw e;
+    console.error("matchActivitiesToPlans failed:", e);
   }
 
   // Update last sync timestamp
