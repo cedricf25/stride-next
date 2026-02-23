@@ -274,14 +274,25 @@ function computeVersionDiff(
     }
   }
 
+  // Index des raisons de suppression explicites
+  const deletionReasons = new Map<string, string>();
+  if (newSnapshot.deletedSessions) {
+    for (const del of newSnapshot.deletedSessions) {
+      const key = `${del.weekNumber}-${del.dayOfWeek.toLowerCase()}`;
+      deletionReasons.set(key, del.reason);
+    }
+  }
+
   for (const [, { week, session }] of oldSessions) {
     diff.sessionsRemoved++;
+    const normalizedKey = `${week}-${session.dayOfWeek.toLowerCase()}`;
+    const explicitReason = deletionReasons.get(normalizedKey);
     diff.details.push({
       weekNumber: week,
       dayOfWeek: session.dayOfWeek,
       changeType: "removed",
       before: session,
-      changeReason: "Supprimé du plan",
+      changeReason: explicitReason ?? "Supprimé du plan (sans justification)",
     });
   }
 
@@ -520,11 +531,23 @@ Format JSON attendu :
       ]
     }
   ],
+  "sessionsToDelete": [
+    {
+      "weekNumber": number,
+      "dayOfWeek": "...",
+      "reason": "Raison OBLIGATOIRE expliquant pourquoi cette séance doit être supprimée"
+    }
+  ],
   "changelog": {
     "summary": "Résumé court global",
     "details": "Vue d'ensemble des modifications"
   }
 }
+
+SUPPRESSION DE SÉANCES :
+- Si tu veux supprimer une séance existante, tu DOIS l'ajouter dans sessionsToDelete avec une raison
+- Sans raison explicite, la séance sera conservée
+- Exemples de raisons valides : "Surcharge détectée, besoin de récupération", "Séance redondante avec S10"
 
 RÈGLES changeReason :
 - null = séance IDENTIQUE (titre, durée, distance, allure, zone, intensité, type inchangés)
@@ -744,6 +767,12 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
 
   // Create initial version snapshot
   await createPlanSnapshot(plan.id, "initial");
+
+  // Set lastUpdatedAt for future update checks
+  await prisma.trainingPlan.update({
+    where: { id: plan.id },
+    data: { lastUpdatedAt: new Date() },
+  });
 
   return { planId: plan.id };
 }
@@ -1018,12 +1047,139 @@ export async function matchActivitiesToPlans() {
   return { matched: matchedCount };
 }
 
+export interface UpdateCheckResult {
+  shouldUpdate: boolean;
+  reason: "no_changes" | "new_activities" | "force" | "no_previous_update";
+  newActivities: Array<{
+    id: string;
+    activityName: string;
+    distance: number;
+    duration: number;
+    startTimeLocal: Date;
+    sessionType?: string;
+    plannedDistance?: number | null;
+    plannedDuration?: number | null;
+  }>;
+  lastUpdatedAt: Date | null;
+}
+
+export async function checkForPlanUpdates(planId: string): Promise<UpdateCheckResult> {
+  const plan = await prisma.trainingPlan.findUnique({
+    where: { id: planId },
+    include: {
+      weeks: {
+        include: {
+          sessions: {
+            where: { linkedActivityId: { not: null } },
+            select: {
+              linkedActivityId: true,
+              sessionType: true,
+              distance: true,
+              duration: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!plan) throw new Error("Plan introuvable");
+
+  const lastUpdatedAt = plan.lastUpdatedAt ?? null;
+  if (!lastUpdatedAt) {
+    return {
+      shouldUpdate: true,
+      reason: "no_previous_update",
+      newActivities: [],
+      lastUpdatedAt: null,
+    };
+  }
+
+  const linkedActivityIds = new Set(
+    plan.weeks.flatMap((w) =>
+      w.sessions.filter((s) => s.linkedActivityId).map((s) => s.linkedActivityId!)
+    )
+  );
+
+  const newActivities = await prisma.activity.findMany({
+    where: {
+      userId: plan.userId,
+      startTimeLocal: { gt: lastUpdatedAt },
+      activityType: { in: ["running", "trail_running", "track_running"] },
+    },
+    orderBy: { startTimeLocal: "asc" },
+    select: {
+      id: true,
+      activityName: true,
+      distance: true,
+      duration: true,
+      startTimeLocal: true,
+    },
+  });
+
+  const trulyNewActivities = newActivities.filter(
+    (a) => !linkedActivityIds.has(a.id)
+  );
+
+  if (trulyNewActivities.length === 0) {
+    return {
+      shouldUpdate: false,
+      reason: "no_changes",
+      newActivities: [],
+      lastUpdatedAt,
+    };
+  }
+
+  const sessionsMap = new Map(
+    plan.weeks.flatMap((w) =>
+      w.sessions
+        .filter((s) => s.linkedActivityId)
+        .map((s) => [s.linkedActivityId!, s])
+    )
+  );
+
+  const enrichedActivities = trulyNewActivities.map((a) => {
+    const linkedSession = sessionsMap.get(a.id);
+    return {
+      ...a,
+      sessionType: linkedSession?.sessionType,
+      plannedDistance: linkedSession?.distance,
+      plannedDuration: linkedSession?.duration,
+    };
+  });
+
+  return {
+    shouldUpdate: true,
+    reason: "new_activities",
+    newActivities: enrichedActivities,
+    lastUpdatedAt,
+  };
+}
+
+export type UpdateResult =
+  | { planId: string; updated: true; newActivitiesCount: number }
+  | { planId: string; updated: false; reason: "no_changes"; lastUpdatedAt: Date | null };
+
 export async function updateTrainingPlan(
   planId: string,
-  startDate?: string
-) {
+  startDate?: string,
+  force?: boolean
+): Promise<UpdateResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY must be set");
+
+  const isBackfill = !!startDate;
+
+  if (!isBackfill && !force) {
+    const updateCheck = await checkForPlanUpdates(planId);
+    if (!updateCheck.shouldUpdate) {
+      return {
+        planId,
+        updated: false,
+        reason: "no_changes",
+        lastUpdatedAt: updateCheck.lastUpdatedAt,
+      };
+    }
+  }
 
   const plan = await prisma.trainingPlan.findUnique({
     where: { id: planId },
@@ -1037,8 +1193,7 @@ export async function updateTrainingPlan(
   });
   if (!plan) throw new Error("Plan introuvable");
 
-  // Create snapshot BEFORE any modification
-  const triggerReason = startDate ? "backfill" : "manual_update";
+  const triggerReason = isBackfill ? "backfill" : "manual_update";
   let previousVersionNumber = plan.currentVersion;
 
   // Only create snapshot if plan has weeks (not empty)
@@ -1048,7 +1203,6 @@ export async function updateTrainingPlan(
   }
 
   const now = new Date();
-  const isBackfill = !!startDate;
   const planStart = startDate ? new Date(startDate) : (plan.startDate ? new Date(plan.startDate) : null);
 
   // Calculate current week number based on plan start date
@@ -1296,7 +1450,23 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
       summary?: string;
       details?: string;
     };
+    sessionsToDelete?: Array<{
+      weekNumber: number;
+      dayOfWeek: string;
+      reason: string;
+    }>;
   };
+
+  // Index des séances explicitement supprimées par l'IA (avec justification)
+  const deletionsMap = new Map<string, string>();
+  if (Array.isArray(generated.sessionsToDelete)) {
+    for (const del of generated.sessionsToDelete) {
+      if (del.reason) {
+        const key = `${del.weekNumber}-${del.dayOfWeek.toLowerCase()}`;
+        deletionsMap.set(key, del.reason);
+      }
+    }
+  }
 
   // Créer un index des séances existantes pour le merge intelligent
   // Clé normalisée : weekNumber-dayOfWeek (minuscules)
@@ -1384,11 +1554,13 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
       const isPastWeek = isBackfill && correctWeekNumber <= pastWeeks;
       const mergedSessions: MergedSession[] = [];
 
+      const generatedDays = new Set<string>();
+
       if (Array.isArray(week.sessions)) {
         for (const genSession of week.sessions) {
-          // Merge intelligent avec la séance existante
           const session = mergeSession(correctWeekNumber, genSession);
           mergedSessions.push(session ?? genSession);
+          generatedDays.add((session?.dayOfWeek ?? genSession.dayOfWeek ?? "").toLowerCase());
 
           await prisma.trainingSession.create({
             data: {
@@ -1406,6 +1578,57 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
               completed: isPastWeek,
             },
           });
+        }
+      }
+
+      // Préserver les séances existantes que l'IA n'a pas générées
+      // SAUF si l'IA demande explicitement leur suppression (avec justification)
+      const existingWeek = weeksToDelete.find((w) => w.weekNumber === correctWeekNumber);
+      if (existingWeek) {
+        for (const existingSession of existingWeek.sessions) {
+          if (!generatedDays.has(existingSession.dayOfWeek.toLowerCase())) {
+            const deletionKey = `${correctWeekNumber}-${existingSession.dayOfWeek.toLowerCase()}`;
+            const deletionReason = deletionsMap.get(deletionKey);
+
+            if (deletionReason) {
+              // L'IA demande explicitement la suppression avec justification
+              // On ne crée pas la séance mais on note la suppression dans le snapshot
+              // (le diff sera calculé automatiquement par comparePlanVersions)
+              continue;
+            }
+
+            // Pas de suppression explicite → on préserve la séance
+            mergedSessions.push({
+              dayOfWeek: existingSession.dayOfWeek,
+              sessionType: existingSession.sessionType,
+              title: existingSession.title,
+              description: existingSession.description,
+              distance: existingSession.distance,
+              duration: existingSession.duration,
+              targetPace: existingSession.targetPace,
+              targetHRZone: existingSession.targetHRZone,
+              intensity: existingSession.intensity,
+              workoutSummary: existingSession.workoutSummary,
+              changeReason: null,
+            });
+
+            await prisma.trainingSession.create({
+              data: {
+                weekId: dbWeek.id,
+                dayOfWeek: existingSession.dayOfWeek,
+                sessionType: existingSession.sessionType,
+                title: existingSession.title,
+                description: existingSession.description,
+                distance: existingSession.distance,
+                duration: existingSession.duration,
+                targetPace: existingSession.targetPace,
+                targetHRZone: existingSession.targetHRZone,
+                intensity: existingSession.intensity,
+                workoutSummary: existingSession.workoutSummary,
+                completed: isPastWeek || existingSession.completed,
+              },
+            });
+          }
         }
       }
 
@@ -1469,12 +1692,23 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
   const allWeeksSnapshot = [...completedWeeksSnapshot, ...generatedWeeksSnapshot]
     .sort((a, b) => a.weekNumber - b.weekNumber);
 
+  // Convertir les suppressions explicites en array pour le snapshot
+  const deletedSessions = Array.from(deletionsMap.entries()).map(([key, reason]) => {
+    const [weekNum, day] = key.split("-");
+    return {
+      weekNumber: parseInt(weekNum, 10),
+      dayOfWeek: day,
+      reason,
+    };
+  });
+
   const newSnapshot: PlanSnapshot = {
     versionNumber: newVersionNumber,
     createdAt: new Date().toISOString(),
     goalProbability: generated.goalProbability ?? null,
     goalAssessment: generated.goalAssessment ?? null,
     weeks: allWeeksSnapshot,
+    deletedSessions: deletedSessions.length > 0 ? deletedSessions : undefined,
   };
 
   // Calculate diff with previous version (only for non-completed weeks)
@@ -1514,13 +1748,14 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
     },
   });
 
-  // Update plan with new version number and goal data
+  // Update plan with new version number, goal data, and lastUpdatedAt
   await prisma.trainingPlan.update({
     where: { id: plan.id },
     data: {
       currentVersion: newVersionNumber,
       goalProbability: generated.goalProbability ?? null,
       goalAssessment: generated.goalAssessment ?? null,
+      lastUpdatedAt: now,
       ...(startDate ? { startDate: new Date(startDate) } : {}),
     },
   });
@@ -1528,7 +1763,7 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
   // Cleanup old versions
   await cleanupOldVersions(plan.id);
 
-  return { planId: plan.id };
+  return { planId: plan.id, updated: true, newActivitiesCount: 0 };
 }
 
 export async function updateSessionDisplayMode(

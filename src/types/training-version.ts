@@ -19,12 +19,19 @@ export interface WeekSnapshot {
   sessions: SessionSnapshot[];
 }
 
+export interface DeletionRecord {
+  weekNumber: number;
+  dayOfWeek: string;
+  reason: string;
+}
+
 export interface PlanSnapshot {
   versionNumber: number;
   createdAt: string;
   goalProbability: number | null;
   goalAssessment: string | null;
   weeks: WeekSnapshot[];
+  deletedSessions?: DeletionRecord[];
 }
 
 export interface SessionDiff {

@@ -267,6 +267,7 @@ model TrainingPlan {
   goalProbability     Int?
   goalAssessment      String?  @db.Text
   currentVersion      Int      @default(1)
+  lastUpdatedAt       DateTime?
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
