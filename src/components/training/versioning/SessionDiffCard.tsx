@@ -40,6 +40,15 @@ export default function SessionDiffCard({
   const session = after ?? before;
   if (!session) return null;
 
+  // Pour les modifications, vérifier qu'il y a des changements significatifs à afficher
+  // Sinon, ne pas afficher cette carte (évite "Modifiée" sans détails)
+  if (changeType === "modified") {
+    const significantChanges = (changes ?? []).filter(
+      (c) => c.before != null && c.after != null
+    );
+    if (significantChanges.length === 0) return null;
+  }
+
   const changeLabel =
     changeType === "added"
       ? "Ajoutée"
@@ -73,9 +82,8 @@ export default function SessionDiffCard({
 
       {/* Modifications détaillées */}
       {changeType === "modified" && changes && changes.length > 0 && (() => {
+        // Filtrer les changements peu significatifs (null → valeur ou valeur → null)
         const significantChanges = changes
-          .filter((c) => c.field !== "description" && c.field !== "title")
-          // Filtrer les changements peu significatifs (null → valeur ou valeur → null)
           .filter((c) => c.before != null && c.after != null);
 
         if (significantChanges.length === 0) return null;

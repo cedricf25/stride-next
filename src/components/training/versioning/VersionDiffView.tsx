@@ -19,21 +19,38 @@ interface Props {
 }
 
 export default function VersionDiffView({ versionA, versionB, diff }: Props) {
+  // Filtrer les modifications qui n'ont pas de changements significatifs à afficher
+  // (cohérent avec SessionDiffCard qui retourne null dans ce cas)
+  const isSignificantChange = (d: SessionDiff) => {
+    if (d.changeType !== "modified") return true;
+    const significantChanges = (d.changes ?? []).filter(
+      (c) => c.before != null && c.after != null
+    );
+    return significantChanges.length > 0;
+  };
+
+  const filteredDetails = diff.details.filter(isSignificantChange);
+
+  // Recalculer les stats avec les changements significatifs seulement
+  const sessionsAdded = filteredDetails.filter((d) => d.changeType === "added").length;
+  const sessionsRemoved = filteredDetails.filter((d) => d.changeType === "removed").length;
+  const sessionsModified = filteredDetails.filter((d) => d.changeType === "modified").length;
+
   // Group changes by week
   const byWeek = new Map<number, SessionDiff[]>();
-  for (const d of diff.details) {
+  for (const d of filteredDetails) {
     const list = byWeek.get(d.weekNumber) ?? [];
     list.push(d);
     byWeek.set(d.weekNumber, list);
   }
 
-  const hasChanges = diff.sessionsAdded > 0 || diff.sessionsRemoved > 0 || diff.sessionsModified > 0;
+  const hasChanges = sessionsAdded > 0 || sessionsRemoved > 0 || sessionsModified > 0;
 
   // Build summary text
   const summaryParts: string[] = [];
-  if (diff.sessionsAdded > 0) summaryParts.push(`+${diff.sessionsAdded} ajoutée${diff.sessionsAdded > 1 ? "s" : ""}`);
-  if (diff.sessionsRemoved > 0) summaryParts.push(`-${diff.sessionsRemoved} supprimée${diff.sessionsRemoved > 1 ? "s" : ""}`);
-  if (diff.sessionsModified > 0) summaryParts.push(`${diff.sessionsModified} modifiée${diff.sessionsModified > 1 ? "s" : ""}`);
+  if (sessionsAdded > 0) summaryParts.push(`+${sessionsAdded} ajoutée${sessionsAdded > 1 ? "s" : ""}`);
+  if (sessionsRemoved > 0) summaryParts.push(`-${sessionsRemoved} supprimée${sessionsRemoved > 1 ? "s" : ""}`);
+  if (sessionsModified > 0) summaryParts.push(`${sessionsModified} modifiée${sessionsModified > 1 ? "s" : ""}`);
   if (diff.volumeChange !== 0) {
     summaryParts.push(`${diff.volumeChange > 0 ? "+" : ""}${diff.volumeChange.toFixed(1)} km`);
   }

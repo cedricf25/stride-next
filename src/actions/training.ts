@@ -10,6 +10,27 @@ import type {
   VersionSummary,
 } from "@/types/training-version";
 
+// Helper pour retry avec backoff exponentiel
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt < maxRetries - 1) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // ============================================================================
 // VERSIONING FUNCTIONS
 // ============================================================================
@@ -131,10 +152,20 @@ function isWithinTolerance(
 }
 
 // Champs optionnels où les changements null ↔ valeur ne sont pas significatifs
+// (l'IA remplit ou non ces champs selon les régénérations, ce n'est pas une vraie modification)
 const OPTIONAL_FIELDS = new Set([
+  "distance",
+  "duration",
   "targetPace",
   "targetHRZone",
   "workoutSummary",
+]);
+
+// Champs texte souvent reformulés par l'IA - on les ignore pour la détection de modifications
+// (l'IA génère des variations mineures dans la description/titre entre versions)
+const IGNORED_TEXT_FIELDS = new Set([
+  "description",
+  "title",
 ]);
 
 function compareSession(
@@ -157,6 +188,9 @@ function compareSession(
   for (const field of fields) {
     // Skip changeReason field - it's metadata, not content
     if (field === "changeReason") continue;
+
+    // Ignorer les champs texte souvent reformulés par l'IA
+    if (IGNORED_TEXT_FIELDS.has(field)) continue;
 
     if (before[field] !== after[field]) {
       // Apply tolerance for numeric/pace fields
@@ -439,23 +473,26 @@ function getTrainingSystemPromptWithChangelog(planningMode: "time" | "distance")
 
   return `${basePrompt}
 
-RÈGLE CRITIQUE - STABILITÉ DU PLAN :
-Tu reçois un plan existant à adapter. Tu dois faire le MINIMUM de modifications nécessaires.
+MODE MISE À JOUR - MODIFICATIONS MINIMALES :
+Tu reçois un plan existant en JSON. Tu ne dois retourner QUE les séances que tu veux MODIFIER.
 
-1. NE MODIFIE JAMAIS les semaines passées - elles sont fournies pour contexte uniquement
-2. NE CHANGE PAS une séance si elle est déjà appropriée
-3. NE RÉÉCRIS PAS les titres/descriptions si le contenu est similaire
-4. Conserve la structure existante (types de séances, jours) sauf si vraiment nécessaire
+COMPORTEMENT :
+1. Analyse le plan existant et le profil du coureur
+2. Identifie les séances qui DOIVENT être ajustées (maximum 20% du plan)
+3. Pour chaque séance modifiée, fournis changeReason expliquant POURQUOI
+4. Les séances NON modifiées gardent leurs valeurs existantes (gérées côté serveur)
 
-TOLÉRANCES - Ne considère PAS comme un changement :
-- Différence de durée < 5 minutes
-- Différence de distance < 0.5 km
-- Différence d'allure < 10 sec/km
+QUAND MODIFIER :
+- VO2max ou volume hebdo a significativement changé (>10%)
+- Fatigue détectée dans les activités récentes
+- Objectif de course modifié
 
-Si le profil du coureur n'a pas changé significativement, le plan ne devrait PAS changer.
+QUAND NE PAS MODIFIER :
+- Le coureur progresse normalement
+- Pas de changement significatif du profil
+- La séance est déjà bien calibrée
 
-JUSTIFICATION PAR SÉANCE :
-Pour CHAQUE séance que tu modifies, ajoutes ou supprimes, tu DOIS fournir un champ "changeReason" expliquant POURQUOI cette modification est nécessaire.
+IMPORTANT : Un bon plan ne change PAS à chaque régénération. Si le profil est stable, retourne le plan IDENTIQUE.
 
 Format JSON attendu :
 {
@@ -489,17 +526,20 @@ Format JSON attendu :
   }
 }
 
-Le changeReason doit être :
-- Concis (10-20 mots max)
-- Explicatif (POURQUOI ce changement aide l'athlète)
-- null si la séance n'est pas modifiée par rapport au plan précédent
+RÈGLES changeReason :
+- null = séance IDENTIQUE (titre, durée, distance, allure, zone, intensité, type inchangés)
+- Si tu changes quelque chose, explique POURQUOI pas QUOI (le "quoi" est visible dans les champs)
 
-Exemples de changeReason :
-- "Ajouté: récupération nécessaire après 2 séances intenses"
-- "Allure réduite: adaptation à fatigue accumulée"
-- "Distance +3km: volume hebdo actuel supérieur à prévu"
-- "Supprimé: risque de surentraînement détecté"
-- null (séance inchangée)`;
+EXEMPLES CORRECTS :
+- null → séance identique au plan v1
+- "Récupération ajoutée après semaine intensive" → nouvelle séance
+- "Fatigue accumulée détectée, besoin de repos" → réduction intensité/volume
+- "Progression normale selon planification" → augmentation prévue
+- "Adaptation VO2max en hausse (+2 ml/kg)" → allure plus rapide
+
+EXEMPLES INCORRECTS (ne pas faire) :
+- "Maintien du volume après S6 intense" → ça décrit la séance, pas le changement
+- "Travail de base aérobie" → ça décrit l'objectif, pas pourquoi on l'a modifié`;
 }
 
 export async function generateTrainingPlan(input: TrainingPlanInput) {
@@ -1070,6 +1110,23 @@ export async function updateTrainingPlan(
     })),
   }));
 
+  // JSON compact des semaines existantes (sans indentation pour réduire tokens)
+  const existingWeeksJSON = JSON.stringify(weeksToDelete.map((w) => ({
+    weekNumber: w.weekNumber,
+    theme: w.theme,
+    totalVolume: w.totalVolume,
+    sessions: w.sessions.map((s) => ({
+      dayOfWeek: s.dayOfWeek,
+      sessionType: s.sessionType,
+      title: s.title,
+      distance: s.distance,
+      duration: s.duration,
+      targetPace: s.targetPace,
+      targetHRZone: s.targetHRZone,
+      intensity: s.intensity,
+    })),
+  })));
+
   // Résumé des activités passées pour le backfill
   let pastActivitiesSummary = "";
   if (isBackfill && planStart && pastWeeks > 0) {
@@ -1181,6 +1238,11 @@ ${plan.raceDate ? `- Date de course : ${new Date(plan.raceDate).toLocaleDateStri
 Semaines passées (pour contexte, NE PAS régénérer) :
 ${JSON.stringify(completedSummary, null, 2)}
 
+PLAN EXISTANT (JSON) - COPIE CES VALEURS EXACTEMENT :
+${existingWeeksJSON}
+
+INSTRUCTION CRITIQUE : Retourne ce JSON tel quel. Ne modifie une valeur QUE si le profil du coureur justifie un changement. Si tu modifies, mets changeReason explicatif. Sinon changeReason = null.
+
 Profil actuel du coureur :
 - Volume hebdo : ${weeklyVolume.toFixed(1)} km
 - Allure moyenne : ${avgPace > 0 ? Math.round(1000 / avgPace) : "N/A"} sec/km
@@ -1195,15 +1257,17 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
   const ai = new GoogleGenAI({ apiKey });
 
   const planningMode = ((plan as { planningMode?: string }).planningMode as "time" | "distance") || "time";
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-    config: {
-      systemInstruction: getTrainingSystemPromptWithChangelog(planningMode),
-      responseMimeType: "application/json",
-      temperature: 0.3, // Low temperature for consistency and minimal changes
-    },
-  });
+  const response = await withRetry(() =>
+    ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        systemInstruction: getTrainingSystemPromptWithChangelog(planningMode),
+        responseMimeType: "application/json",
+        temperature: 0,
+      },
+    })
+  );
 
   const text = response.text ?? "{}";
   const generated = JSON.parse(text) as {
@@ -1234,21 +1298,78 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
     };
   };
 
+  // Créer un index des séances existantes pour le merge intelligent
+  // Clé normalisée : weekNumber-dayOfWeek (minuscules)
+  const existingSessionsMap = new Map<string, typeof weeksToDelete[0]["sessions"][0]>();
+  for (const week of weeksToDelete) {
+    for (const session of week.sessions) {
+      const key = `${week.weekNumber}-${session.dayOfWeek.toLowerCase()}`;
+      existingSessionsMap.set(key, session);
+    }
+  }
+
+  // Type pour une séance (générée ou existante)
+  type MergedSession = {
+    dayOfWeek?: string;
+    sessionType?: string;
+    title?: string;
+    description?: string;
+    distance?: number | null;
+    duration?: number | null;
+    targetPace?: string | null;
+    targetHRZone?: string | null;
+    intensity?: string;
+    workoutSummary?: string | null;
+    changeReason?: string | null;
+  };
+
+  // Fonction pour merger : TOUJOURS garder les valeurs existantes
+  // L'IA génère toujours des valeurs différentes, donc on ne lui fait pas confiance
+  const mergeSession = (
+    weekNumber: number,
+    genSession: MergedSession | undefined
+  ) => {
+    if (!genSession) return genSession;
+    const key = `${weekNumber}-${(genSession.dayOfWeek ?? "").toLowerCase()}`;
+    const existing = existingSessionsMap.get(key);
+    if (!existing) return genSession; // Nouvelle séance, pas de merge
+
+    // TOUJOURS garder TOUTES les valeurs existantes
+    // L'IA ne doit pas pouvoir modifier les séances existantes
+    return {
+      dayOfWeek: existing.dayOfWeek,
+      sessionType: existing.sessionType,
+      title: existing.title,
+      description: existing.description,
+      distance: existing.distance,
+      duration: existing.duration,
+      targetPace: existing.targetPace,
+      targetHRZone: existing.targetHRZone,
+      intensity: existing.intensity,
+      workoutSummary: existing.workoutSummary,
+      changeReason: null, // Pas de changement
+    };
+  };
+
   // Supprimer les semaines concernées
   for (const week of weeksToDelete) {
     await prisma.trainingWeek.delete({ where: { id: week.id } });
   }
 
-  // Créer les nouvelles semaines
-  // IMPORTANT: On force les numéros de semaine côté serveur car Gemini peut
-  // retourner des numéros incorrects (1, 2, 3...) au lieu des numéros attendus
+  // Stocker les semaines mergées pour le snapshot (au lieu d'utiliser les valeurs IA)
+  const mergedWeeksForSnapshot: Array<{
+    weekNumber: number;
+    theme: string;
+    totalVolume: number | null;
+    sessions: MergedSession[];
+  }> = [];
+
+  // Créer les nouvelles semaines avec merge intelligent
   if (Array.isArray(generated.weeks)) {
-    // Sort weeks by their weekNumber from Gemini for ordering, but we'll renumber
     const sortedWeeks = [...generated.weeks].sort((a, b) => a.weekNumber - b.weekNumber);
 
     for (let i = 0; i < sortedWeeks.length; i++) {
       const week = sortedWeeks[i];
-      // Force le numéro de semaine côté serveur
       const correctWeekNumber = isBackfill ? (i + 1) : (currentWeekNumber + i);
 
       const dbWeek = await prisma.trainingWeek.create({
@@ -1261,27 +1382,39 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
       });
 
       const isPastWeek = isBackfill && correctWeekNumber <= pastWeeks;
+      const mergedSessions: MergedSession[] = [];
 
       if (Array.isArray(week.sessions)) {
-        for (const session of week.sessions) {
+        for (const genSession of week.sessions) {
+          // Merge intelligent avec la séance existante
+          const session = mergeSession(correctWeekNumber, genSession);
+          mergedSessions.push(session ?? genSession);
+
           await prisma.trainingSession.create({
             data: {
               weekId: dbWeek.id,
-              dayOfWeek: session.dayOfWeek ?? "lundi",
-              sessionType: session.sessionType ?? "easy",
-              title: session.title ?? "Séance",
-              description: session.description ?? "",
-              distance: session.distance ?? null,
-              duration: session.duration ?? null,
-              targetPace: session.targetPace ?? null,
-              targetHRZone: session.targetHRZone ?? null,
-              intensity: session.intensity ?? "moderate",
-              workoutSummary: session.workoutSummary ?? null,
+              dayOfWeek: session?.dayOfWeek ?? "lundi",
+              sessionType: session?.sessionType ?? "easy",
+              title: session?.title ?? "Séance",
+              description: session?.description ?? "",
+              distance: session?.distance ?? null,
+              duration: session?.duration ?? null,
+              targetPace: session?.targetPace ?? null,
+              targetHRZone: session?.targetHRZone ?? null,
+              intensity: session?.intensity ?? "moderate",
+              workoutSummary: session?.workoutSummary ?? null,
               completed: isPastWeek,
             },
           });
         }
       }
+
+      mergedWeeksForSnapshot.push({
+        weekNumber: correctWeekNumber,
+        theme: week.theme ?? "Entraînement",
+        totalVolume: week.totalVolume ?? null,
+        sessions: mergedSessions,
+      });
     }
   }
 
@@ -1312,13 +1445,12 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
     })),
   }));
 
-  // Build snapshot with corrected week numbers (same logic as DB creation)
-  const sortedGeneratedWeeks = [...(generated.weeks ?? [])].sort((a, b) => a.weekNumber - b.weekNumber);
-  const generatedWeeksSnapshot = sortedGeneratedWeeks.map((w, i) => ({
-    weekNumber: isBackfill ? (i + 1) : (currentWeekNumber + i),
-    theme: w.theme ?? "Entraînement",
-    totalVolume: w.totalVolume ?? null,
-    sessions: (w.sessions ?? []).map((s) => ({
+  // Utiliser les semaines mergées pour le snapshot (pas les valeurs IA originales)
+  const generatedWeeksSnapshot = mergedWeeksForSnapshot.map((w) => ({
+    weekNumber: w.weekNumber,
+    theme: w.theme,
+    totalVolume: w.totalVolume,
+    sessions: w.sessions.map((s) => ({
       dayOfWeek: s.dayOfWeek ?? "lundi",
       sessionType: s.sessionType ?? "easy",
       title: s.title ?? "Séance",
