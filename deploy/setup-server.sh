@@ -83,6 +83,9 @@ sudo ufw allow OpenSSH
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 
+# Allow MariaDB (remote access)
+sudo ufw allow 3306/tcp
+
 # Enable firewall
 sudo ufw --force enable
 
