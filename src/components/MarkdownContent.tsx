@@ -234,7 +234,7 @@ export default function MarkdownContent({ content }: { content: string }) {
 
         return (
           <div
-            key={section.number}
+            key={`${i}-${section.number}`}
             className={`rounded-xl border-l-4 ${theme.border} bg-[var(--bg-surface)] shadow-sm overflow-hidden`}
           >
             {/* Section header */}

@@ -8,7 +8,7 @@ import { PageContainer, AlertBanner } from "@/components/shared";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const { activities, error } = await fetchGarminActivities();
+  const { activities, error } = await fetchGarminActivities(0, 6);
 
   return (
     <PageContainer>

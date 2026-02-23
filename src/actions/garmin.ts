@@ -75,6 +75,7 @@ export async function fetchGarminActivities(
       orderBy: buildOrderBy(filters),
       skip: page * limit,
       take: limit,
+      include: { analysis: { select: { id: true } } },
     });
 
     const formatted: FormattedActivity[] = activities.map((a) => ({
@@ -93,6 +94,7 @@ export async function fetchGarminActivities(
       anaerobicTE: a.anaerobicTrainingEffect ?? undefined,
       vo2max: a.vo2max ?? undefined,
       strideLength: a.averageStrideLength ?? undefined,
+      hasAiAnalysis: a.analysis != null,
     }));
 
     // rawActivities for AI analysis compatibility

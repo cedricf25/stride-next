@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calendar, MapPin, Clock, Gauge, Heart, Zap } from "lucide-react";
+import { Calendar, MapPin, Clock, Gauge, Heart, Zap, Sparkles } from "lucide-react";
 import type { FormattedActivity } from "@/types/garmin";
 import StatItem from "@/components/shared/StatItem";
 import ProgressBar from "@/components/shared/ProgressBar";
@@ -19,7 +19,13 @@ function teColor(value: number): string {
 export default function ActivityCard({ activity }: ActivityCardProps) {
   return (
     <Link href={`/activities/${activity.id}`}>
-      <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-sm transition-shadow hover:shadow-md">
+      <div className="relative rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-sm transition-shadow hover:shadow-md">
+        {activity.hasAiAnalysis && (
+          <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+            <Sparkles className="h-3 w-3" />
+            <span>IA</span>
+          </div>
+        )}
         <h3 className="mb-1 text-lg font-semibold text-[var(--text-primary)]">
           {activity.name}
         </h3>

@@ -36,6 +36,7 @@ export interface FormattedActivity {
   anaerobicTE?: number;
   vo2max?: number;
   strideLength?: number;
+  hasAiAnalysis?: boolean;
 }
 
 export interface ActivitiesResponse {
