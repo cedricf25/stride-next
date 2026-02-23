@@ -27,6 +27,7 @@ interface Session {
   targetHRZone: string | null;
   intensity: string;
   displayMode: string | null;
+  workoutSummary: string | null;
   completed: boolean;
   linkedActivityId: string | null;
   linkedActivity: LinkedActivity | null;
@@ -41,6 +42,7 @@ interface Props {
     totalVolume: number | null;
     sessions: Session[];
   };
+  planId: string;
   planStartDate?: Date | null;
   planningMode: "time" | "distance";
 }
@@ -57,8 +59,9 @@ function formatWeekDates(planStartDate: Date, weekNumber: number): string {
   return `${fmtDay(start)} – ${fmtDay(end)}`;
 }
 
-export default function TrainingWeekCard({ week, planStartDate, planningMode }: Props) {
-  const [open, setOpen] = useLocalStorage(`week-open-${week.id}`, true);
+export default function TrainingWeekCard({ week, planId, planStartDate, planningMode }: Props) {
+  // Use planId + weekNumber as key for stable state across updates
+  const [open, setOpen] = useLocalStorage(`week-open-${planId}-${week.weekNumber}`, true);
 
   const completed = week.sessions.filter((s) => s.completed).length;
   const total = week.sessions.length;

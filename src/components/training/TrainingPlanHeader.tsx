@@ -14,6 +14,7 @@ interface Props {
     status: string;
     goalProbability: number | null;
     goalAssessment: string | null;
+    currentVersion: number;
     weeks: { sessions: { completed: boolean }[] }[];
   };
 }
@@ -40,6 +41,9 @@ export default function TrainingPlanHeader({ plan }: Props) {
       <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-[var(--text-tertiary)]">
         <Badge color="blue" size="md" className="capitalize">
           {plan.raceType}
+        </Badge>
+        <Badge color="gray" size="sm">
+          v{plan.currentVersion}
         </Badge>
         {plan.startDate && (
           <span className="flex items-center gap-1">

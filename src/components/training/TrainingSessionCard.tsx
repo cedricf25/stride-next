@@ -29,6 +29,7 @@ interface Props {
     targetHRZone: string | null;
     intensity: string;
     displayMode: string | null;
+    workoutSummary: string | null;
     completed: boolean;
     linkedActivityId: string | null;
     linkedActivity: LinkedActivity | null;
@@ -53,6 +54,26 @@ const typeLabels: Record<string, string> = {
   interval: "Fractionné",
   long_run: "Sortie longue",
   rest: "Repos",
+};
+
+// Labels courts pour affichage compact (badge)
+const typeShortLabels: Record<string, string> = {
+  easy: "EF",
+  recovery: "Récup",
+  tempo: "Tempo",
+  interval: "VMA",
+  long_run: "SL",
+  rest: "Repos",
+};
+
+// Couleurs des badges par type de séance
+const typeBadgeColors: Record<string, string> = {
+  easy: "bg-green-100 text-green-700",
+  recovery: "bg-green-50 text-green-600",
+  tempo: "bg-orange-100 text-orange-700",
+  interval: "bg-red-100 text-red-700",
+  long_run: "bg-blue-100 text-blue-700",
+  rest: "bg-gray-100 text-gray-500",
 };
 
 function formatDistance(meters: number): string {
@@ -144,14 +165,25 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
       </button>
 
       <div className="flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium capitalize text-[var(--text-tertiary)]">
             {session.dayOfWeek}
           </span>
           <span className="text-xs text-[var(--text-muted)]">|</span>
-          <span className="text-xs font-medium text-[var(--text-secondary)]">
-            {typeLabels[session.sessionType] ?? session.sessionType}
+          {/* Badge type court */}
+          <span
+            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+              typeBadgeColors[session.sessionType] ?? "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {typeShortLabels[session.sessionType] ?? session.sessionType}
           </span>
+          {/* Badge workoutSummary si présent (ex: "3×10' Z4") */}
+          {session.workoutSummary && (
+            <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
+              {session.workoutSummary}
+            </span>
+          )}
           {session.matchScore !== null && (
             <span
               className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${

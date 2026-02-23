@@ -266,13 +266,41 @@ model TrainingPlan {
   status              String   @default("active") // "active", "completed", "archived"
   goalProbability     Int?
   goalAssessment      String?  @db.Text
+  currentVersion      Int      @default(1)
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   weeks               TrainingWeek[]
+  versions            TrainingPlanVersion[]
 
   @@index([userId])
+}
+
+model TrainingPlanVersion {
+  id              String   @id @default(cuid())
+  planId          String
+  plan            TrainingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  versionNumber   Int
+  createdAt       DateTime @default(now())
+  snapshot        String   @db.LongText  // JSON des semaines/sessions
+
+  // Changelog IA
+  changelogSummary  String?  @db.Text
+  changelogDetails  String?  @db.LongText
+
+  // Contexte
+  triggerReason   String?  // "initial", "manual_update", "backfill"
+
+  // Métriques diff
+  sessionsAdded    Int @default(0)
+  sessionsRemoved  Int @default(0)
+  sessionsModified Int @default(0)
+  volumeChange     Float?
+
+  @@unique([planId, versionNumber])
+  @@index([planId])
 }
 
 model TrainingWeek {
@@ -305,6 +333,7 @@ model TrainingSession {
   targetHRZone    String?  // ex: "Z2", "Z3-Z4"
   intensity       String   @default("moderate") // "low", "moderate", "high", "very_high"
   displayMode     String?  // "time" ou "distance" - override individuel (null = utilise planningMode du plan)
+  workoutSummary  String?  // Résumé court pour intervalles: "3×10' Z4", "8×400m", "2×(6×200m)"
   completed       Boolean  @default(false)
 
   // Lien vers l'activité réelle correspondante

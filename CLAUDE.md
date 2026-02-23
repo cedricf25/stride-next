@@ -103,6 +103,7 @@ src/
 - Plans d'entraînement générés par Gemini en JSON structuré (`responseMimeType: "application/json"`)
 
 - Ne recompile pas toi meme
+- Ne vérifie pas que ca compile a chaque fois
 
 ## Variables d'environnement (.env.local)
 
