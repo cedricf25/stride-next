@@ -55,11 +55,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy Prisma schema and generated client
+# Copy Prisma schema and generated client (Prisma 7 generates in src/generated)
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/src/generated ./src/generated
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
