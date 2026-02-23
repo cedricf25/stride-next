@@ -52,6 +52,7 @@ export default function TrainingPlanForm() {
         targetTime: state.targetTime || undefined,
         daysPerWeek: state.daysPerWeek,
         longRunDay: state.longRunDay,
+        planningMode: state.planningMode,
       });
 
       router.push(`/training/${result.planId}`);
@@ -169,6 +170,29 @@ export default function TrainingPlanForm() {
             </option>
           ))}
         </Select>
+      </FormField>
+
+      {/* Planning mode */}
+      <FormField label="Planifier les séances par">
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant={state.planningMode === "time" ? "primary" : "secondary"}
+            onClick={() => dispatch({ type: "SET_FIELD", field: "planningMode", value: "time" })}
+          >
+            Temps
+          </Button>
+          <Button
+            type="button"
+            variant={state.planningMode === "distance" ? "primary" : "secondary"}
+            onClick={() => dispatch({ type: "SET_FIELD", field: "planningMode", value: "distance" })}
+          >
+            Distance
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          Tu pourras ajuster chaque séance individuellement via le menu ⋮
+        </p>
       </FormField>
 
       {state.error && (

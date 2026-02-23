@@ -6,17 +6,22 @@ import { RefreshCw, CalendarClock } from "lucide-react";
 import { updateTrainingPlan } from "@/actions/training";
 import { Button } from "@/components/shared";
 
-export default function UpdatePlanButton({ planId }: { planId: string }) {
+interface Props {
+  planId: string;
+  currentStartDate?: string | null; // format ISO "2025-01-15"
+}
+
+export default function UpdatePlanButton({ planId, currentStartDate }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showOptions, setShowOptions] = useState(false);
-  const [startDate, setStartDate] = useState("");
+  // Pré-remplit avec la date existante si présente
+  const [startDate, setStartDate] = useState(currentStartDate ?? "");
 
   function handleUpdate() {
     startTransition(async () => {
       await updateTrainingPlan(planId, startDate || undefined);
       setShowOptions(false);
-      setStartDate("");
       router.refresh();
     });
   }
@@ -53,7 +58,7 @@ export default function UpdatePlanButton({ planId }: { planId: string }) {
             variant="ghost"
             onClick={() => {
               setShowOptions(false);
-              setStartDate("");
+              setStartDate(currentStartDate ?? "");
             }}
             disabled={isPending}
           >

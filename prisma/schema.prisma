@@ -262,6 +262,7 @@ model TrainingPlan {
   targetTime          String?  // objectif chrono
   daysPerWeek         Int
   longRunDay          String   // "lundi" → "dimanche"
+  planningMode        String   @default("time") // "time" ou "distance" - mode de planification par défaut
   status              String   @default("active") // "active", "completed", "archived"
   goalProbability     Int?
   goalAssessment      String?  @db.Text
@@ -303,6 +304,7 @@ model TrainingSession {
   targetPace      String?  // ex: "5:30 /km"
   targetHRZone    String?  // ex: "Z2", "Z3-Z4"
   intensity       String   @default("moderate") // "low", "moderate", "high", "very_high"
+  displayMode     String?  // "time" ou "distance" - override individuel (null = utilise planningMode du plan)
   completed       Boolean  @default(false)
 
   // Lien vers l'activité réelle correspondante

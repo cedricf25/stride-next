@@ -13,11 +13,17 @@ export interface TrainingPlanInput {
   targetTime?: string;
   daysPerWeek: number;
   longRunDay: string;
+  planningMode: "time" | "distance";
 }
 
-const TRAINING_SYSTEM_PROMPT = `Tu es un coach expert en course à pied. Tu génères des plans d'entraînement structurés et personnalisés.
+function getTrainingSystemPrompt(planningMode: "time" | "distance"): string {
+  const modeInstruction = planningMode === "time"
+    ? `IMPORTANT : Privilégie la DURÉE (en minutes) pour définir chaque séance. Mets le focus sur le temps d'effort plutôt que la distance. Exemple : "45 min en endurance fondamentale" plutôt que "10 km facile". Le champ duration est OBLIGATOIRE pour toutes les séances, le champ distance est OPTIONNEL (utilise-le uniquement pour les séances de fractionné sur piste comme 10x400m).`
+    : `IMPORTANT : Privilégie la DISTANCE (en km) pour définir chaque séance. Mets le focus sur la distance à parcourir. Exemple : "10 km facile" plutôt que "60 min en endurance". Le champ distance est OBLIGATOIRE pour toutes les séances (sauf repos), le champ duration est OPTIONNEL (estimation du temps prévu).`;
 
-IMPORTANT : Privilégie la durée (en minutes) pour définir chaque séance, sauf pour les séances de fractionné sur piste où la distance est pertinente (ex: 10x400m). Le champ duration est obligatoire, le champ distance est optionnel.
+  return `Tu es un coach expert en course à pied. Tu génères des plans d'entraînement structurés et personnalisés.
+
+${modeInstruction}
 
 Tu dois répondre UNIQUEMENT avec un JSON valide (pas de markdown, pas de commentaires), respectant exactement cette structure :
 {
@@ -34,9 +40,9 @@ Tu dois répondre UNIQUEMENT avec un JSON valide (pas de markdown, pas de commen
           "dayOfWeek": "string - lundi/mardi/.../dimanche",
           "sessionType": "easy|tempo|interval|long_run|recovery|rest",
           "title": "string - titre court",
-          "description": "string - description détaillée de la séance avec durée ou distance selon le type",
-          "distance": number | null, // km (optionnel, surtout pour fractionné piste)
-          "duration": number, // minutes (obligatoire)
+          "description": "string - description détaillée de la séance avec ${planningMode === "time" ? "durée" : "distance"} en priorité",
+          "distance": number | null, // km${planningMode === "distance" ? " (OBLIGATOIRE sauf repos)" : " (optionnel)"},
+          "duration": number | null, // minutes${planningMode === "time" ? " (OBLIGATOIRE)" : " (optionnel)"},
           "targetPace": "string | null - ex: 5:30 /km",
           "targetHRZone": "string | null - ex: Z2, Z3-Z4",
           "intensity": "low|moderate|high|very_high"
@@ -52,6 +58,7 @@ Adapte le plan au niveau du coureur basé sur ses données récentes.
 Respecte le nombre de jours d'entraînement demandé.
 Place la sortie longue le jour demandé.
 Inclus des jours de repos.`;
+}
 
 export async function generateTrainingPlan(input: TrainingPlanInput) {
   const user = await getAuthenticatedUser();
@@ -71,6 +78,7 @@ export async function generateTrainingPlan(input: TrainingPlanInput) {
       targetTime: input.targetTime ?? null,
       daysPerWeek: input.daysPerWeek,
       longRunDay: input.longRunDay,
+      planningMode: input.planningMode,
     },
   });
 
@@ -196,7 +204,7 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
     model: "gemini-3-flash-preview",
     contents: prompt,
     config: {
-      systemInstruction: TRAINING_SYSTEM_PROMPT,
+      systemInstruction: getTrainingSystemPrompt(input.planningMode),
       responseMimeType: "application/json",
       temperature: 0.7,
     },
@@ -724,11 +732,12 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
 
   const ai = new GoogleGenAI({ apiKey });
 
+  const planningMode = ((plan as { planningMode?: string }).planningMode as "time" | "distance") || "time";
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: prompt,
     config: {
-      systemInstruction: TRAINING_SYSTEM_PROMPT,
+      systemInstruction: getTrainingSystemPrompt(planningMode),
       responseMimeType: "application/json",
       temperature: 0.7,
     },
@@ -789,4 +798,14 @@ Adapte la charge en fonction de la progression réelle du coureur.`;
   });
 
   return { planId: plan.id };
+}
+
+export async function updateSessionDisplayMode(
+  sessionId: string,
+  displayMode: "time" | "distance" | null
+) {
+  await prisma.trainingSession.update({
+    where: { id: sessionId },
+    data: { displayMode },
+  });
 }

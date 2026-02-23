@@ -32,7 +32,10 @@ export default async function TrainingPlanPage({
       <TrainingPlanHeader plan={plan} />
 
       <div className="mt-4 space-y-3">
-        <UpdatePlanButton planId={plan.id} />
+        <UpdatePlanButton
+          planId={plan.id}
+          currentStartDate={plan.startDate?.toISOString().split("T")[0]}
+        />
         <div>
           <DeletePlanButton planId={plan.id} />
         </div>
@@ -45,7 +48,12 @@ export default async function TrainingPlanPage({
 
       <div className="mt-8 space-y-4">
         {plan.weeks.map((week) => (
-          <TrainingWeekCard key={week.id} week={week} planStartDate={plan.startDate} />
+          <TrainingWeekCard
+            key={week.id}
+            week={week}
+            planStartDate={plan.startDate}
+            planningMode={((plan as { planningMode?: string }).planningMode as "time" | "distance") || "time"}
+          />
         ))}
       </div>
     </PageContainer>

@@ -1,9 +1,10 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink } from "lucide-react";
-import { toggleSessionCompleted } from "@/actions/training";
+import { ExternalLink, MoreVertical, Clock, Ruler } from "lucide-react";
+import { toggleSessionCompleted, updateSessionDisplayMode } from "@/actions/training";
 
 interface LinkedActivity {
   id: string;
@@ -27,11 +28,13 @@ interface Props {
     targetPace: string | null;
     targetHRZone: string | null;
     intensity: string;
+    displayMode: string | null;
     completed: boolean;
     linkedActivityId: string | null;
     linkedActivity: LinkedActivity | null;
     matchScore: number | null;
   };
+  planningMode: "time" | "distance";
 }
 
 const typeColors: Record<string, string> = {
@@ -82,13 +85,40 @@ function getVariationIcon(planned: number, actual: number, tolerance: number = 0
   return "↓";
 }
 
-export default function TrainingSessionCard({ session }: Props) {
+export default function TrainingSessionCard({ session, planningMode }: Props) {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const colorClass = typeColors[session.sessionType] ?? "border-l-[var(--border-default)] bg-[var(--bg-surface-hover)]";
   const activity = session.linkedActivity;
 
+  // Mode effectif : displayMode de la séance ou planningMode du plan
+  const effectiveMode = (session.displayMode as "time" | "distance" | null) ?? planningMode;
+
+  // Fermer le menu au clic extérieur
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [menuOpen]);
+
   async function handleToggle() {
     await toggleSessionCompleted(session.id);
+    router.refresh();
+  }
+
+  async function handleDisplayModeChange(mode: "time" | "distance") {
+    // Si le mode choisi est le même que le planningMode du plan, on remet à null (utilise le défaut)
+    const newMode = mode === planningMode ? null : mode;
+    await updateSessionDisplayMode(session.id, newMode);
+    setMenuOpen(false);
     router.refresh();
   }
 
@@ -222,15 +252,33 @@ export default function TrainingSessionCard({ session }: Props) {
           </div>
         ) : (
           <div className="mt-1.5 flex flex-wrap gap-2">
-            {session.distance && (
-              <span className="rounded bg-[var(--bg-surface)]/80 px-1.5 py-0.5 text-xs text-[var(--text-secondary)]">
-                {session.distance} km
-              </span>
-            )}
-            {session.duration && (
-              <span className="rounded bg-[var(--bg-surface)]/80 px-1.5 py-0.5 text-xs text-[var(--text-secondary)]">
-                {session.duration} min
-              </span>
+            {/* Affiche la métrique principale en premier selon le mode */}
+            {effectiveMode === "time" ? (
+              <>
+                {session.duration && (
+                  <span className="rounded bg-[var(--bg-surface)]/80 px-1.5 py-0.5 text-xs font-medium text-[var(--text-primary)]">
+                    {session.duration} min
+                  </span>
+                )}
+                {session.distance && (
+                  <span className="rounded bg-[var(--bg-surface)]/80 px-1.5 py-0.5 text-xs text-[var(--text-muted)]">
+                    ~{session.distance} km
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                {session.distance && (
+                  <span className="rounded bg-[var(--bg-surface)]/80 px-1.5 py-0.5 text-xs font-medium text-[var(--text-primary)]">
+                    {session.distance} km
+                  </span>
+                )}
+                {session.duration && (
+                  <span className="rounded bg-[var(--bg-surface)]/80 px-1.5 py-0.5 text-xs text-[var(--text-muted)]">
+                    ~{session.duration} min
+                  </span>
+                )}
+              </>
             )}
             {session.targetPace && (
               <span className="rounded bg-[var(--bg-surface)]/80 px-1.5 py-0.5 text-xs text-[var(--text-secondary)]">
@@ -245,6 +293,46 @@ export default function TrainingSessionCard({ session }: Props) {
           </div>
         )}
       </div>
+
+      {/* Menu 3 points pour changer le mode d'affichage */}
+      {session.sessionType !== "rest" && (
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="rounded p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-secondary)]"
+            title="Options"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-lg">
+              <div className="px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                Afficher par
+              </div>
+              <button
+                onClick={() => handleDisplayModeChange("time")}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-surface-hover)] ${
+                  effectiveMode === "time" ? "text-blue-500" : "text-[var(--text-secondary)]"
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Temps
+                {effectiveMode === "time" && <span className="ml-auto text-xs">✓</span>}
+              </button>
+              <button
+                onClick={() => handleDisplayModeChange("distance")}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-surface-hover)] ${
+                  effectiveMode === "distance" ? "text-blue-500" : "text-[var(--text-secondary)]"
+                }`}
+              >
+                <Ruler className="h-3.5 w-3.5" />
+                Distance
+                {effectiveMode === "distance" && <span className="ml-auto text-xs">✓</span>}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

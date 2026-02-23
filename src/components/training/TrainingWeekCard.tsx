@@ -26,6 +26,7 @@ interface Session {
   targetPace: string | null;
   targetHRZone: string | null;
   intensity: string;
+  displayMode: string | null;
   completed: boolean;
   linkedActivityId: string | null;
   linkedActivity: LinkedActivity | null;
@@ -41,6 +42,7 @@ interface Props {
     sessions: Session[];
   };
   planStartDate?: Date | null;
+  planningMode: "time" | "distance";
 }
 
 function formatWeekDates(planStartDate: Date, weekNumber: number): string {
@@ -55,7 +57,7 @@ function formatWeekDates(planStartDate: Date, weekNumber: number): string {
   return `${fmtDay(start)} – ${fmtDay(end)}`;
 }
 
-export default function TrainingWeekCard({ week, planStartDate }: Props) {
+export default function TrainingWeekCard({ week, planStartDate, planningMode }: Props) {
   const [open, setOpen] = useLocalStorage(`week-open-${week.id}`, true);
 
   const completed = week.sessions.filter((s) => s.completed).length;
@@ -99,7 +101,7 @@ export default function TrainingWeekCard({ week, planStartDate }: Props) {
         <div className="border-t border-[var(--border-subtle)] px-6 py-4">
           <div className="space-y-3">
             {week.sessions.map((session) => (
-              <TrainingSessionCard key={session.id} session={session} />
+              <TrainingSessionCard key={session.id} session={session} planningMode={planningMode} />
             ))}
           </div>
         </div>

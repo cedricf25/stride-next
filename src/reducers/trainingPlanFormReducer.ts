@@ -7,6 +7,7 @@ export interface TrainingPlanFormState {
   targetTime: string;
   daysPerWeek: number;
   longRunDay: string;
+  planningMode: "time" | "distance";
   loading: boolean;
   error: string;
 }
@@ -20,6 +21,7 @@ export const initialState: TrainingPlanFormState = {
   targetTime: "",
   daysPerWeek: 4,
   longRunDay: "dimanche",
+  planningMode: "time",
   loading: false,
   error: "",
 };
