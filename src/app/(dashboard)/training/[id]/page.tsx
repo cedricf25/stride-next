@@ -7,6 +7,7 @@ import DeletePlanButton from "@/components/training/DeletePlanButton";
 import UpdatePlanButton from "@/components/training/UpdatePlanButton";
 import PaceZonesCard from "@/components/training/PaceZonesCard";
 import PlanProgressWidget from "@/components/training/PlanProgressWidget";
+import TestModePanel from "@/components/training/TestModePanel";
 import { PageContainer, BackLink, LinkButton } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +50,7 @@ export default async function TrainingPlanPage({
               Historique ({plan.currentVersion} versions)
             </LinkButton>
           )}
+          <TestModePanel planId={plan.id} />
         </div>
       </div>
 

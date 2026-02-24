@@ -27,9 +27,11 @@ export default function UpdatePlanButton({ planId, currentStartDate }: Props) {
   function handleUpdate(force = false) {
     startTransition(async () => {
       try {
+        // Ne passer startDate que si elle a été MODIFIÉE (backfill explicite)
+        const hasChangedStartDate = startDate && startDate !== currentStartDate;
         const result = await updateTrainingPlan(
           planId,
-          startDate || undefined,
+          hasChangedStartDate ? startDate : undefined,
           force
         );
 
