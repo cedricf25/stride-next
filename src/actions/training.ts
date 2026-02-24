@@ -1617,6 +1617,22 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
     };
   };
 
+  // Sauvegarder les liens activité-session AVANT suppression
+  // Clé : "weekNumber-dayOfWeek" → { linkedActivityId, matchScore, completed }
+  const savedLinks = new Map<string, { linkedActivityId: string; matchScore: number | null; completed: boolean }>();
+  for (const week of weeksToDelete) {
+    for (const session of week.sessions) {
+      if (session.linkedActivityId) {
+        const key = `${week.weekNumber}-${session.dayOfWeek.toLowerCase()}`;
+        savedLinks.set(key, {
+          linkedActivityId: session.linkedActivityId,
+          matchScore: session.matchScore,
+          completed: session.completed,
+        });
+      }
+    }
+  }
+
   // Supprimer les semaines concernées
   for (const week of weeksToDelete) {
     await prisma.trainingWeek.delete({ where: { id: week.id } });
@@ -1734,6 +1750,30 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
         totalVolume: week.totalVolume ?? null,
         sessions: mergedSessions,
       });
+    }
+  }
+
+  // Restaurer les liens activité-session sauvegardés
+  if (savedLinks.size > 0) {
+    const newWeeks = await prisma.trainingWeek.findMany({
+      where: { planId: plan.id },
+      include: { sessions: true },
+    });
+    for (const week of newWeeks) {
+      for (const session of week.sessions) {
+        const key = `${week.weekNumber}-${session.dayOfWeek.toLowerCase()}`;
+        const saved = savedLinks.get(key);
+        if (saved) {
+          await prisma.trainingSession.update({
+            where: { id: session.id },
+            data: {
+              linkedActivityId: saved.linkedActivityId,
+              matchScore: saved.matchScore,
+              completed: saved.completed,
+            },
+          });
+        }
+      }
     }
   }
 
@@ -1888,11 +1928,26 @@ export async function restorePlanVersion(planId: string, versionNumber: number) 
 
   const plan = await prisma.trainingPlan.findUnique({
     where: { id: planId },
-    include: { weeks: true },
+    include: { weeks: { include: { sessions: true } } },
   });
   if (!plan) throw new Error("Plan introuvable");
 
   const snapshot: PlanSnapshot = JSON.parse(version.snapshot);
+
+  // Sauvegarder les liens activité-session AVANT suppression
+  const savedLinks = new Map<string, { linkedActivityId: string; matchScore: number | null; completed: boolean }>();
+  for (const week of plan.weeks) {
+    for (const session of week.sessions) {
+      if (session.linkedActivityId) {
+        const key = `${week.weekNumber}-${session.dayOfWeek.toLowerCase()}`;
+        savedLinks.set(key, {
+          linkedActivityId: session.linkedActivityId,
+          matchScore: session.matchScore,
+          completed: session.completed,
+        });
+      }
+    }
+  }
 
   // Supprimer toutes les semaines actuelles
   for (const week of plan.weeks) {
@@ -1938,6 +1993,30 @@ export async function restorePlanVersion(planId: string, versionNumber: number) 
           completed: isPastWeek,
         },
       });
+    }
+  }
+
+  // Restaurer les liens activité-session sauvegardés
+  if (savedLinks.size > 0) {
+    const newWeeks = await prisma.trainingWeek.findMany({
+      where: { planId },
+      include: { sessions: true },
+    });
+    for (const week of newWeeks) {
+      for (const session of week.sessions) {
+        const key = `${week.weekNumber}-${session.dayOfWeek.toLowerCase()}`;
+        const saved = savedLinks.get(key);
+        if (saved) {
+          await prisma.trainingSession.update({
+            where: { id: session.id },
+            data: {
+              linkedActivityId: saved.linkedActivityId,
+              matchScore: saved.matchScore,
+              completed: saved.completed,
+            },
+          });
+        }
+      }
     }
   }
 
@@ -2020,11 +2099,26 @@ export async function setDefaultVersion(planId: string, versionNumber: number) {
 
   const plan = await prisma.trainingPlan.findUnique({
     where: { id: planId },
-    include: { weeks: true },
+    include: { weeks: { include: { sessions: true } } },
   });
   if (!plan) throw new Error("Plan introuvable");
 
   const snapshot: PlanSnapshot = JSON.parse(version.snapshot);
+
+  // Sauvegarder les liens activité-session AVANT suppression
+  const savedLinks = new Map<string, { linkedActivityId: string; matchScore: number | null; completed: boolean }>();
+  for (const week of plan.weeks) {
+    for (const session of week.sessions) {
+      if (session.linkedActivityId) {
+        const key = `${week.weekNumber}-${session.dayOfWeek.toLowerCase()}`;
+        savedLinks.set(key, {
+          linkedActivityId: session.linkedActivityId,
+          matchScore: session.matchScore,
+          completed: session.completed,
+        });
+      }
+    }
+  }
 
   // Supprimer toutes les semaines actuelles
   for (const week of plan.weeks) {
@@ -2070,6 +2164,30 @@ export async function setDefaultVersion(planId: string, versionNumber: number) {
           completed: isPastWeek,
         },
       });
+    }
+  }
+
+  // Restaurer les liens activité-session sauvegardés
+  if (savedLinks.size > 0) {
+    const newWeeks = await prisma.trainingWeek.findMany({
+      where: { planId },
+      include: { sessions: true },
+    });
+    for (const week of newWeeks) {
+      for (const session of week.sessions) {
+        const key = `${week.weekNumber}-${session.dayOfWeek.toLowerCase()}`;
+        const saved = savedLinks.get(key);
+        if (saved) {
+          await prisma.trainingSession.update({
+            where: { id: session.id },
+            data: {
+              linkedActivityId: saved.linkedActivityId,
+              matchScore: saved.matchScore,
+              completed: saved.completed,
+            },
+          });
+        }
+      }
     }
   }
 
