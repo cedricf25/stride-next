@@ -154,7 +154,7 @@ export default function UpdatePlanButton({ planId, currentStartDate }: Props) {
       onClick={() => setShowOptions(true)}
       icon={<RefreshCw className="h-4 w-4" />}
     >
-      Adapter le plan
+      Mise à jour du plan
     </Button>
   );
 }
