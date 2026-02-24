@@ -1,8 +1,6 @@
 "use server";
 
 import { GoogleGenAI } from "@google/genai";
-import { writeFileSync } from "fs";
-import { join } from "path";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/user";
 import type {
@@ -421,160 +419,94 @@ export interface TrainingPlanInput {
   planningMode: "time" | "distance";
 }
 
-function getTrainingSystemPrompt(planningMode: "time" | "distance"): string {
-  const modeInstruction = planningMode === "time"
-    ? `IMPORTANT : Privilégie la DURÉE (en minutes) pour définir chaque séance. Mets le focus sur le temps d'effort plutôt que la distance. Exemple : "45 min en endurance fondamentale" plutôt que "10 km facile". Le champ duration est OBLIGATOIRE pour toutes les séances, le champ distance est OPTIONNEL (utilise-le uniquement pour les séances de fractionné sur piste comme 10x400m).`
-    : `IMPORTANT : Privilégie la DISTANCE (en km) pour définir chaque séance. Mets le focus sur la distance à parcourir. Exemple : "10 km facile" plutôt que "60 min en endurance". Le champ distance est OBLIGATOIRE pour toutes les séances (sauf repos), le champ duration est OPTIONNEL (estimation du temps prévu).`;
+function getModeInstruction(planningMode: "time" | "distance"): string {
+  return planningMode === "time"
+    ? `Privilégie la DURÉE (minutes) pour chaque séance. Le champ "duration" est OBLIGATOIRE, "distance" est optionnel (fractionné sur piste uniquement).`
+    : `Privilégie la DISTANCE (km) pour chaque séance. Le champ "distance" est OBLIGATOIRE (sauf repos), "duration" est optionnel.`;
+}
 
-  return `Tu es un coach expert en course à pied. Tu génères des plans d'entraînement structurés et personnalisés.
+function getSessionSchema(planningMode: "time" | "distance"): string {
+  return `{
+  "dayOfWeek": "lundi|mardi|...|dimanche",
+  "sessionType": "easy|tempo|interval|long_run|recovery|rest",
+  "title": "string - titre court",
+  "description": "string - détail avec ${planningMode === "time" ? "durée" : "distance"} en priorité",
+  "distance": "number|null (km)",
+  "duration": "number|null (minutes)",
+  "targetPace": "string|null - ex: 5:30/km",
+  "targetHRZone": "string|null - ex: Z2, Z3-Z4",
+  "intensity": "low|moderate|high|very_high",
+  "workoutSummary": "string|null - résumé court : 3×10' Z4, 8×400m, 1h30 prog, null si séance simple"
+}`;
+}
 
-${modeInstruction}
+function getCreateSystemPrompt(planningMode: "time" | "distance"): string {
+  return `Tu es un coach expert en course à pied. Génère des plans d'entraînement structurés et personnalisés.
 
-Tu dois répondre UNIQUEMENT avec un JSON valide (pas de markdown, pas de commentaires), respectant exactement cette structure :
+${getModeInstruction(planningMode)}
+
+Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
 {
   "name": "string - nom du plan",
-  "goalProbability": number, // 0-100, probabilité estimée d'atteindre l'objectif
-  "goalAssessment": "string - évaluation courte (2-3 phrases) de la faisabilité de l'objectif",
+  "goalProbability": "number 0-100 basé sur le niveau actuel, l'objectif et le temps de préparation",
+  "goalAssessment": "string - évaluation courte (2-3 phrases) de la faisabilité",
   "weeks": [
     {
-      "weekNumber": number,
-      "theme": "string - thème de la semaine (Base, Développement, Spécifique, Affûtage, etc.)",
-      "totalVolume": number, // km prévus
-      "sessions": [
-        {
-          "dayOfWeek": "string - lundi/mardi/.../dimanche",
-          "sessionType": "easy|tempo|interval|long_run|recovery|rest",
-          "title": "string - titre court",
-          "description": "string - description détaillée de la séance avec ${planningMode === "time" ? "durée" : "distance"} en priorité",
-          "distance": number | null, // km${planningMode === "distance" ? " (OBLIGATOIRE sauf repos)" : " (optionnel)"},
-          "duration": number | null, // minutes${planningMode === "time" ? " (OBLIGATOIRE)" : " (optionnel)"},
-          "targetPace": "string | null - ex: 5:30 /km",
-          "targetHRZone": "string | null - ex: Z2, Z3-Z4",
-          "intensity": "low|moderate|high|very_high",
-          "workoutSummary": "string | null - résumé COURT de la structure (voir exemples ci-dessous)"
-        }
-      ]
+      "weekNumber": "number",
+      "theme": "string - Base, Développement, Spécifique, Affûtage, etc.",
+      "totalVolume": "number - km prévus",
+      "sessions": [${getSessionSchema(planningMode)}]
     }
   ]
 }
 
-CHAMP workoutSummary - TRÈS IMPORTANT :
-Ce champ donne un aperçu visuel rapide de la séance. Il doit être court et lisible.
-
-Format pour les séances structurées (interval, tempo avec blocs) :
-- "3×10' Z4" = 3 blocs de 10 minutes en zone 4
-- "8×400m" = 8 répétitions de 400 mètres
-- "2×(6×200m)" = 2 blocs de 6 répétitions de 200m
-- "30' Z3 + 20' Z4" = 30 min zone 3 puis 20 min zone 4
-- "6×1km r=2'" = 6 fois 1km avec 2' de récupération
-
-Format pour les séances simples :
-- null pour les séances faciles/récup/repos (l'info est dans duration/distance)
-- "1h30 prog" pour sortie longue progressive
-- "45' EF" pour endurance fondamentale longue
-
-Le goalProbability doit être basé sur : le niveau actuel du coureur (volume hebdo, allure, VO2max), l'objectif visé, le temps de préparation disponible, et l'historique d'entraînement.
-
-Adapte le plan au niveau du coureur basé sur ses données récentes.
-Respecte le nombre de jours d'entraînement demandé.
-Place la sortie longue le jour demandé.
-Inclus des jours de repos.`;
+Règles :
+- Respecte le nombre de jours d'entraînement demandé
+- Place la sortie longue le jour demandé
+- Inclus des jours de repos`;
 }
 
-function getTrainingSystemPromptWithChangelog(planningMode: "time" | "distance"): string {
-  const basePrompt = getTrainingSystemPrompt(planningMode);
+function getUpdateSystemPrompt(planningMode: "time" | "distance"): string {
+  return `Tu es un coach expert en course à pied. Tu mets à jour un plan d'entraînement existant.
 
-  return `${basePrompt}
+${getModeInstruction(planningMode)}
 
-MODE MISE À JOUR - STABILITÉ MAXIMALE :
-Tu reçois un plan existant. Tu dois le conserver IDENTIQUE sauf si une activité récente JUSTIFIE un ajustement.
+STABILITÉ MAXIMALE : conserve le plan IDENTIQUE sauf si une activité récente justifie un ajustement.
+- Max 2-3 séances modifiées par nouvelle activité
+- Modifier uniquement si : TE > 4.5, FC > 90% FC max, ou fatigue/blessure signalée
+- Sans signal problématique → 0 modification
 
-RÈGLE CRITIQUE : Maximum 2-3 séances modifiées par nouvelle activité.
-- 1 activité = 1 à 3 séances impactées (les jours suivants uniquement)
-- Les séances passées ou lointaines ne changent JAMAIS
-- Sans nouvelle activité problématique → 0 modification
-
-QUAND MODIFIER (cas rares) :
-- TE aérobie > 4.5 ou anaérobie > 4.0 → réduire la séance suivante
-- FC moyenne > 90% FC max → ajouter récupération
-- Blessure ou fatigue signalée → alléger 2-3 jours
-
-QUAND NE PAS MODIFIER (cas par défaut) :
-- Activité normale (TE 2.0-4.0) → plan inchangé
-- Progression conforme au plan → plan inchangé
-- Pas de signal de fatigue → plan inchangé
-
-INTERDIT :
-- Modifier plus de 3 séances pour une activité
-- Raisons génériques ("Initialisation phase", "Optimisation", "Adaptation")
-- Changer des séances sans lien avec l'activité récente
-
-Format JSON attendu :
+Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
 {
-  "name": "...",
-  "goalProbability": number,
-  "goalAssessment": "...",
+  "name": "string",
+  "goalProbability": "number 0-100",
+  "goalAssessment": "string",
   "weeks": [
     {
-      "weekNumber": number,
-      "theme": "...",
-      "totalVolume": number,
+      "weekNumber": "number",
+      "theme": "string",
+      "totalVolume": "number",
       "sessions": [
         {
-          "dayOfWeek": "...",
-          "sessionType": "...",
-          "title": "...",
-          "description": "...",
-          "distance": number | null,
-          "duration": number | null,
-          "targetPace": "...",
-          "targetHRZone": "...",
-          "intensity": "...",
-          "changeReason": "ex: 'easy → interval car TE aérobie 4.5 (bonne récup)' ou null si inchangée"
+          ${getSessionSchema(planningMode).slice(2, -2)},
+          "changeReason": "string|null - null si inchangée, sinon format: [ancien] → [nouveau] car [données chiffrées]"
         }
       ]
     }
   ],
   "sessionsToDelete": [
-    {
-      "weekNumber": number,
-      "dayOfWeek": "...",
-      "reason": "Raison OBLIGATOIRE expliquant pourquoi cette séance doit être supprimée"
-    }
+    { "weekNumber": "number", "dayOfWeek": "string", "reason": "string obligatoire" }
   ],
   "changelog": {
-    "summary": "Résumé court global",
-    "details": "Vue d'ensemble des modifications"
+    "summary": "string - résumé court global",
+    "details": "string - vue d'ensemble des modifications"
   }
 }
 
-SUPPRESSION DE SÉANCES :
-- Si tu veux supprimer une séance existante, tu DOIS l'ajouter dans sessionsToDelete avec une raison
-- Sans raison explicite, la séance sera conservée
-- Exemples de raisons valides : "Surcharge détectée, besoin de récupération", "Séance redondante avec S10"
-
-RÈGLES changeReason :
-- null = séance IDENTIQUE (titre, durée, distance, allure, zone, intensité, type inchangés)
-- Si tu modifies une séance, le changeReason DOIT contenir :
-  1. LA MODIFICATION : quoi → quoi (type, volume, intensité, allure...)
-  2. LA RAISON : pourquoi, basée sur les données (TE, FC, fatigue, volume...)
-
-FORMAT : "[ancien] → [nouveau] car [raison avec données chiffrées]"
-
-EXEMPLES CORRECTS :
-- null → séance identique, aucune modification nécessaire
-- "easy → interval car TE aérobie 4.5 montre bonne récupération (course du 15/02)"
-- "45min → 30min car FC moy 165bpm indique fatigue (au-dessus zone cible)"
-- "tempo → récup car 2 séances intensives consécutives (TE anaérobie 3.8 + 4.1)"
-- "ajout séance car volume hebdo insuffisant (-15% vs objectif 40km)"
-- "allure 5:30 → 5:15 car progression VO2max +2ml depuis dernière MàJ"
-
-EXEMPLES INCORRECTS (REJETÉS, plan non sauvegardé) :
-- "Initialisation phase spécifique" → INTERDIT, ne justifie rien
-- "Planification optimisée" → INTERDIT, trop vague
-- "Adaptation selon profil" → INTERDIT, pas de données
-- "Préparation spécifique" → INTERDIT, ne dit pas quoi change
-- Toute raison sans référence à l'activité récente → INTERDIT`;
+changeReason :
+- null = séance identique, aucune modification
+- Exemples valides : "easy → interval car TE aérobie 4.5 (course du 15/02)", "45min → 30min car FC moy 165bpm"
+- INTERDIT : raisons génériques sans données ("Initialisation", "Optimisation", "Adaptation")`;
 }
 
 export async function generateTrainingPlan(input: TrainingPlanInput) {
@@ -721,7 +653,7 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
     model: "gemini-3-flash-preview",
     contents: prompt,
     config: {
-      systemInstruction: getTrainingSystemPrompt(input.planningMode),
+      systemInstruction: getCreateSystemPrompt(input.planningMode),
       responseMimeType: "application/json",
       temperature: 0.7,
     },
@@ -1059,139 +991,14 @@ export async function matchActivitiesToPlans() {
   return { matched: matchedCount };
 }
 
-export interface UpdateCheckResult {
-  shouldUpdate: boolean;
-  reason: "no_changes" | "new_activities" | "force" | "no_previous_update";
-  newActivities: Array<{
-    id: string;
-    activityName: string;
-    distance: number;
-    duration: number;
-    startTimeLocal: Date;
-    sessionType?: string;
-    plannedDistance?: number | null;
-    plannedDuration?: number | null;
-  }>;
-  lastUpdatedAt: Date | null;
-}
-
-export async function checkForPlanUpdates(planId: string): Promise<UpdateCheckResult> {
-  const plan = await prisma.trainingPlan.findUnique({
-    where: { id: planId },
-    include: {
-      weeks: {
-        include: {
-          sessions: {
-            where: { linkedActivityId: { not: null } },
-            select: {
-              linkedActivityId: true,
-              sessionType: true,
-              distance: true,
-              duration: true,
-            },
-          },
-        },
-      },
-    },
-  });
-  if (!plan) throw new Error("Plan introuvable");
-
-  const lastUpdatedAt = plan.lastUpdatedAt ?? null;
-  if (!lastUpdatedAt) {
-    return {
-      shouldUpdate: true,
-      reason: "no_previous_update",
-      newActivities: [],
-      lastUpdatedAt: null,
-    };
-  }
-
-  const linkedActivityIds = new Set(
-    plan.weeks.flatMap((w) =>
-      w.sessions.filter((s) => s.linkedActivityId).map((s) => s.linkedActivityId!)
-    )
-  );
-
-  const newActivities = await prisma.activity.findMany({
-    where: {
-      userId: plan.userId,
-      startTimeLocal: { gt: lastUpdatedAt },
-      activityType: { in: ["running", "trail_running", "track_running"] },
-    },
-    orderBy: { startTimeLocal: "asc" },
-    select: {
-      id: true,
-      activityName: true,
-      distance: true,
-      duration: true,
-      startTimeLocal: true,
-    },
-  });
-
-  const trulyNewActivities = newActivities.filter(
-    (a) => !linkedActivityIds.has(a.id)
-  );
-
-  if (trulyNewActivities.length === 0) {
-    return {
-      shouldUpdate: false,
-      reason: "no_changes",
-      newActivities: [],
-      lastUpdatedAt,
-    };
-  }
-
-  const sessionsMap = new Map(
-    plan.weeks.flatMap((w) =>
-      w.sessions
-        .filter((s) => s.linkedActivityId)
-        .map((s) => [s.linkedActivityId!, s])
-    )
-  );
-
-  const enrichedActivities = trulyNewActivities.map((a) => {
-    const linkedSession = sessionsMap.get(a.id);
-    return {
-      ...a,
-      sessionType: linkedSession?.sessionType,
-      plannedDistance: linkedSession?.distance,
-      plannedDuration: linkedSession?.duration,
-    };
-  });
-
-  return {
-    shouldUpdate: true,
-    reason: "new_activities",
-    newActivities: enrichedActivities,
-    lastUpdatedAt,
-  };
-}
-
-export type UpdateResult =
-  | { planId: string; updated: true; newActivitiesCount: number }
-  | { planId: string; updated: false; reason: "no_changes"; lastUpdatedAt: Date | null };
-
 export async function updateTrainingPlan(
   planId: string,
   startDate?: string,
-  force?: boolean
-): Promise<UpdateResult> {
+): Promise<{ planId: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY must be set");
 
   const isBackfill = !!startDate;
-
-  if (!isBackfill && !force) {
-    const updateCheck = await checkForPlanUpdates(planId);
-    if (!updateCheck.shouldUpdate) {
-      return {
-        planId,
-        updated: false,
-        reason: "no_changes",
-        lastUpdatedAt: updateCheck.lastUpdatedAt,
-      };
-    }
-  }
 
   const plan = await prisma.trainingPlan.findUnique({
     where: { id: planId },
@@ -1445,27 +1252,13 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
   const ai = new GoogleGenAI({ apiKey });
 
   const planningMode = ((plan as { planningMode?: string }).planningMode as "time" | "distance") || "time";
-  const systemPrompt = getTrainingSystemPromptWithChangelog(planningMode);
-
-  // DEBUG: Log le prompt complet
-  const debugLog = {
-    timestamp: new Date().toISOString(),
-    planId: plan.id,
-    systemPrompt,
-    userPrompt: prompt,
-  };
-  writeFileSync(
-    join(process.cwd(), "debug-prompt.json"),
-    JSON.stringify(debugLog, null, 2),
-    "utf-8"
-  );
 
   const response = await withRetry(() =>
     ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: systemPrompt,
+        systemInstruction: getUpdateSystemPrompt(planningMode),
         responseMimeType: "application/json",
         temperature: 0,
       },
@@ -1473,13 +1266,6 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
   );
 
   const text = response.text ?? "{}";
-
-  // DEBUG: Log aussi la réponse
-  writeFileSync(
-    join(process.cwd(), "debug-response.json"),
-    JSON.stringify({ timestamp: new Date().toISOString(), response: text }, null, 2),
-    "utf-8"
-  );
   const generated = JSON.parse(text) as {
     name?: string;
     goalProbability?: number;
@@ -1899,7 +1685,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
   // Cleanup old versions
   await cleanupOldVersions(plan.id);
 
-  return { planId: plan.id, updated: true, newActivitiesCount: 0 };
+  return { planId: plan.id };
 }
 
 export async function updateSessionDisplayMode(
@@ -2204,88 +1990,3 @@ export async function setDefaultVersion(planId: string, versionNumber: number) {
   return { success: true };
 }
 
-// ============================================================================
-// TEST MODE - SIMULATION D'ACTIVITÉS
-// ============================================================================
-
-export async function fetchRecentActivitiesForTest(limit = 10) {
-  const user = await getAuthenticatedUser();
-  return prisma.activity.findMany({
-    where: {
-      userId: user.id,
-      activityType: { in: ["running", "trail_running", "track_running"] },
-    },
-    orderBy: { startTimeLocal: "desc" },
-    take: limit,
-    select: {
-      id: true,
-      activityName: true,
-      distance: true,
-      duration: true,
-      startTimeLocal: true,
-      activityType: true,
-    },
-  });
-}
-
-export async function simulateActivityForPlan(
-  planId: string,
-  sourceActivityId: string,
-  targetDate: Date
-) {
-  const user = await getAuthenticatedUser();
-
-  const sourceActivity = await prisma.activity.findUnique({
-    where: { id: sourceActivityId },
-  });
-  if (!sourceActivity) throw new Error("Activité source introuvable");
-
-  const plan = await prisma.trainingPlan.findUnique({
-    where: { id: planId },
-  });
-  if (!plan) throw new Error("Plan introuvable");
-
-  // Créer une copie de l'activité avec la nouvelle date
-  const simulatedActivity = await prisma.activity.create({
-    data: {
-      userId: user.id,
-      garminActivityId: BigInt(Date.now()),
-      activityName: `[SIMUL] ${sourceActivity.activityName}`,
-      activityType: sourceActivity.activityType,
-      startTimeLocal: targetDate,
-      startTimeGMT: targetDate,
-      distance: sourceActivity.distance,
-      duration: sourceActivity.duration,
-      movingDuration: sourceActivity.movingDuration,
-      averageSpeed: sourceActivity.averageSpeed,
-      maxSpeed: sourceActivity.maxSpeed,
-      averageHR: sourceActivity.averageHR,
-      maxHR: sourceActivity.maxHR,
-      calories: sourceActivity.calories,
-      elevationGain: sourceActivity.elevationGain,
-      elevationLoss: sourceActivity.elevationLoss,
-      averageCadence: sourceActivity.averageCadence,
-      aerobicTrainingEffect: sourceActivity.aerobicTrainingEffect,
-      anaerobicTrainingEffect: sourceActivity.anaerobicTrainingEffect,
-      vo2max: sourceActivity.vo2max,
-    },
-  });
-
-  return {
-    simulatedActivityId: simulatedActivity.id,
-    activityName: simulatedActivity.activityName,
-  };
-}
-
-export async function deleteSimulatedActivities() {
-  const user = await getAuthenticatedUser();
-
-  const deleted = await prisma.activity.deleteMany({
-    where: {
-      userId: user.id,
-      activityName: { startsWith: "[SIMUL]" },
-    },
-  });
-
-  return { deletedCount: deleted.count };
-}
