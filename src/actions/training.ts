@@ -472,9 +472,13 @@ function getUpdateSystemPrompt(planningMode: "time" | "distance"): string {
 ${getModeInstruction(planningMode)}
 
 STABILITÉ MAXIMALE : conserve le plan IDENTIQUE sauf si une activité récente justifie un ajustement.
-- Max 2-3 séances modifiées par nouvelle activité
-- Modifier uniquement si : TE > 4.5, FC > 90% FC max, ou fatigue/blessure signalée
+- Max 2-3 séances modifiées par mise à jour
+- Modifier uniquement si signaux clairs :
+  • Surcharge : TE > 4.5, FC > 90% FCmax, ou séances réalisées bien plus dures que prévu → RÉDUIRE l'intensité/volume des 2-3 jours suivants de 10-15%
+  • Sous-charge : TE < 2.0, séances réalisées bien plus faciles que prévu → AUGMENTER légèrement l'intensité/volume de 5-10%
+  • Écart planifié/réalisé > 20% sur distance ou durée → ajuster les séances suivantes
 - Sans signal problématique → 0 modification
+- Adaptation PROGRESSIVE : ne jamais changer brutalement (ex: passer de 10km à 15km d'un coup)
 
 Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
 {
@@ -1004,7 +1008,13 @@ export async function updateTrainingPlan(
     include: {
       user: true,
       weeks: {
-        include: { sessions: true },
+        include: {
+          sessions: {
+            include: {
+              linkedActivity: true,
+            },
+          },
+        },
         orderBy: { weekNumber: "asc" },
       },
     },
@@ -1071,25 +1081,161 @@ export async function updateTrainingPlan(
 
   // Récupérer les nouvelles activités depuis la dernière mise à jour (clé pour l'adaptation)
   const lastUpdatedAt = plan.lastUpdatedAt;
-  const newActivitiesSinceLastUpdate = lastUpdatedAt
+
+  // Protection contre les doubles mises à jour rapides :
+  // Si le plan a été mis à jour il y a moins de 5 minutes, on skip l'analyse d'adaptation
+  const MIN_UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+  const timeSinceLastUpdate = lastUpdatedAt ? now.getTime() - lastUpdatedAt.getTime() : Infinity;
+  const skipAdaptationAnalysis = timeSinceLastUpdate < MIN_UPDATE_INTERVAL_MS;
+
+  const newActivitiesSinceLastUpdate = (lastUpdatedAt && !skipAdaptationAnalysis)
     ? recentActivities.filter((a) => a.startTimeLocal > lastUpdatedAt)
     : [];
 
-  // Résumé des nouvelles activités pour le prompt
-  const newActivitiesSummary = newActivitiesSinceLastUpdate.length > 0
-    ? `\nNOUVELLES ACTIVITÉS DEPUIS LA DERNIÈRE MISE À JOUR (${lastUpdatedAt?.toLocaleDateString("fr-FR") ?? "jamais"}) :\n` +
-      newActivitiesSinceLastUpdate.map((a) => {
-        const distKm = (a.distance / 1000).toFixed(1);
-        const durMin = Math.round(a.duration / 60);
-        const paceSecPerKm = a.averageSpeed ? Math.round(1000 / a.averageSpeed) : null;
-        const paceStr = paceSecPerKm ? `${Math.floor(paceSecPerKm / 60)}:${(paceSecPerKm % 60).toString().padStart(2, "0")}/km` : "N/A";
-        return `- ${a.startTimeLocal.toLocaleDateString("fr-FR")} : ${a.activityName} - ${distKm}km en ${durMin}min (${paceStr})` +
-          (a.averageHR ? ` - FC moy: ${a.averageHR}bpm` : "") +
-          (a.aerobicTrainingEffect ? ` - TE aérobie: ${a.aerobicTrainingEffect.toFixed(1)}` : "") +
-          (a.anaerobicTrainingEffect ? ` - TE anaérobie: ${a.anaerobicTrainingEffect.toFixed(1)}` : "");
-      }).join("\n") +
-      "\n\nAnalyse ces activités et adapte le plan si nécessaire (fatigue, surcharge, progression rapide...)."
-    : "";
+  // Récupérer les séances récentes liées à des activités pour analyse planifié vs réalisé
+  // On skip si mise à jour récente pour éviter les doubles ajustements
+  const recentLinkedSessions = skipAdaptationAnalysis ? [] : plan.weeks
+    .flatMap((w) => w.sessions)
+    .filter((s) => s.linkedActivity && s.linkedActivityId)
+    .filter((s) => {
+      const activity = s.linkedActivity!;
+      return !lastUpdatedAt || activity.startTimeLocal > lastUpdatedAt;
+    })
+    .slice(0, 10); // Limiter aux 10 dernières
+
+  // Fonction pour évaluer la difficulté perçue
+  const evaluateDifficulty = (session: typeof recentLinkedSessions[0]) => {
+    const activity = session.linkedActivity!;
+    const indicators: string[] = [];
+    let difficultyScore = 0; // -2 à +2 (négatif = trop facile, positif = trop dur)
+
+    // 1. Training Effect aérobie (>4 = très dur, <2 = récupération active)
+    if (activity.aerobicTrainingEffect) {
+      if (activity.aerobicTrainingEffect >= 4.5) {
+        difficultyScore += 2;
+        indicators.push("TE très élevé");
+      } else if (activity.aerobicTrainingEffect >= 3.5) {
+        difficultyScore += 1;
+        indicators.push("TE élevé");
+      } else if (activity.aerobicTrainingEffect < 2.0) {
+        difficultyScore -= 1;
+        indicators.push("TE faible");
+      }
+    }
+
+    // 2. Comparaison distance réalisée vs planifiée
+    if (session.distance && session.distance > 0) {
+      const actualKm = activity.distance / 1000;
+      const ratio = actualKm / session.distance;
+      if (ratio > 1.2) {
+        difficultyScore += 1;
+        indicators.push(`+${Math.round((ratio - 1) * 100)}% distance`);
+      } else if (ratio < 0.8) {
+        difficultyScore -= 1;
+        indicators.push(`${Math.round((ratio - 1) * 100)}% distance`);
+      }
+    }
+
+    // 3. Comparaison durée réalisée vs planifiée
+    if (session.duration && session.duration > 0) {
+      const actualMin = activity.duration / 60;
+      const ratio = actualMin / session.duration;
+      if (ratio > 1.2) {
+        difficultyScore += 1;
+        indicators.push(`+${Math.round((ratio - 1) * 100)}% durée`);
+      } else if (ratio < 0.8) {
+        difficultyScore -= 1;
+        indicators.push(`${Math.round((ratio - 1) * 100)}% durée`);
+      }
+    }
+
+    // 4. FC moyenne élevée
+    if (activity.averageHR && plan.user.maxHR) {
+      const hrPercent = (activity.averageHR / plan.user.maxHR) * 100;
+      if (hrPercent > 85) {
+        difficultyScore += 1;
+        indicators.push(`FC à ${Math.round(hrPercent)}% FCmax`);
+      }
+    }
+
+    // Interprétation du score
+    let assessment: string;
+    if (difficultyScore >= 2) {
+      assessment = "⚠️ SÉANCE TRÈS DIFFICILE";
+    } else if (difficultyScore >= 1) {
+      assessment = "↗️ Séance plus dure que prévu";
+    } else if (difficultyScore <= -2) {
+      assessment = "↘️ Séance très facile";
+    } else if (difficultyScore <= -1) {
+      assessment = "↘️ Séance plus facile que prévu";
+    } else {
+      assessment = "✓ Séance conforme au plan";
+    }
+
+    return { difficultyScore, assessment, indicators };
+  };
+
+  // Résumé des nouvelles activités avec analyse planifié vs réalisé
+  let newActivitiesSummary = "";
+
+  if (recentLinkedSessions.length > 0) {
+    newActivitiesSummary += `\nANALYSE DES SÉANCES RÉCENTES (PLANIFIÉ VS RÉALISÉ) :\n`;
+
+    for (const session of recentLinkedSessions) {
+      const activity = session.linkedActivity!;
+      const { assessment, indicators } = evaluateDifficulty(session);
+
+      const actualDistKm = (activity.distance / 1000).toFixed(1);
+      const actualDurMin = Math.round(activity.duration / 60);
+      const plannedDistKm = session.distance?.toFixed(1) ?? "N/A";
+      const plannedDurMin = session.duration ?? "N/A";
+
+      newActivitiesSummary += `\n- ${activity.startTimeLocal.toLocaleDateString("fr-FR")} : ${session.title} (${session.sessionType})\n`;
+      newActivitiesSummary += `  Planifié: ${plannedDistKm}km / ${plannedDurMin}min\n`;
+      newActivitiesSummary += `  Réalisé: ${actualDistKm}km / ${actualDurMin}min`;
+      if (activity.averageHR) newActivitiesSummary += ` - FC moy: ${activity.averageHR}bpm`;
+      if (activity.aerobicTrainingEffect) newActivitiesSummary += ` - TE: ${activity.aerobicTrainingEffect.toFixed(1)}`;
+      newActivitiesSummary += `\n  ${assessment}`;
+      if (indicators.length > 0) newActivitiesSummary += ` (${indicators.join(", ")})`;
+      newActivitiesSummary += "\n";
+    }
+
+    // Résumé global de la tendance
+    const avgDifficulty = recentLinkedSessions.reduce((sum, s) => sum + evaluateDifficulty(s).difficultyScore, 0) / recentLinkedSessions.length;
+
+    if (avgDifficulty >= 1) {
+      newActivitiesSummary += `\n⚠️ TENDANCE GÉNÉRALE : Les séances récentes semblent trop difficiles. RECOMMANDATION : Réduire l'intensité ou le volume des prochaines séances de 10-15% pour permettre la récupération.\n`;
+    } else if (avgDifficulty <= -1) {
+      newActivitiesSummary += `\n💪 TENDANCE GÉNÉRALE : Les séances récentes semblent trop faciles. RECOMMANDATION : Augmenter légèrement l'intensité ou le volume des prochaines séances de 5-10%.\n`;
+    } else {
+      newActivitiesSummary += `\n✓ TENDANCE GÉNÉRALE : Le plan est bien calibré, l'athlète suit correctement.\n`;
+    }
+  }
+
+  // Ajouter les activités non liées (hors plan)
+  const unlinkedActivities = newActivitiesSinceLastUpdate.filter(
+    (a) => !recentLinkedSessions.some((s) => s.linkedActivityId === a.id)
+  );
+
+  if (unlinkedActivities.length > 0) {
+    newActivitiesSummary += `\nACTIVITÉS HORS PLAN (depuis ${lastUpdatedAt?.toLocaleDateString("fr-FR") ?? "jamais"}) :\n`;
+    newActivitiesSummary += unlinkedActivities.map((a) => {
+      const distKm = (a.distance / 1000).toFixed(1);
+      const durMin = Math.round(a.duration / 60);
+      const paceSecPerKm = a.averageSpeed ? Math.round(1000 / a.averageSpeed) : null;
+      const paceStr = paceSecPerKm ? `${Math.floor(paceSecPerKm / 60)}:${(paceSecPerKm % 60).toString().padStart(2, "0")}/km` : "N/A";
+      return `- ${a.startTimeLocal.toLocaleDateString("fr-FR")} : ${a.activityName} - ${distKm}km en ${durMin}min (${paceStr})` +
+        (a.averageHR ? ` - FC moy: ${a.averageHR}bpm` : "") +
+        (a.aerobicTrainingEffect ? ` - TE: ${a.aerobicTrainingEffect.toFixed(1)}` : "");
+    }).join("\n");
+    newActivitiesSummary += "\n";
+  }
+
+  if (skipAdaptationAnalysis) {
+    newActivitiesSummary = `\n⏳ MISE À JOUR RÉCENTE : Le plan a été mis à jour il y a moins de 5 minutes. Pour éviter les doubles ajustements, AUCUNE modification basée sur les activités récentes ne sera appliquée. Conserve le plan EXACTEMENT tel quel.\n`;
+  } else if (newActivitiesSummary) {
+    newActivitiesSummary += "\nADAPTE LE PLAN en fonction de ces observations : si l'athlète est en surcharge, allège les jours suivants ; si les séances sont trop faciles, augmente progressivement.";
+  }
 
   // Résumé des semaines complétées (mode normal uniquement)
   const completedSummary = completedWeeks.map((w) => ({
