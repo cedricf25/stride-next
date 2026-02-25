@@ -156,7 +156,8 @@ export async function syncSleepData(days: number = 14) {
   for (let i = 0; i < days; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split("T")[0];
+    // Utiliser la date locale (pas UTC) pour éviter le décalage de timezone
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
     try {
       const sleep = (await client.getSleepData(date)) as GarminRaw;
@@ -239,7 +240,8 @@ export async function syncHealthMetrics(days: number = 14) {
   for (let i = 0; i < days; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split("T")[0];
+    // Utiliser la date locale (pas UTC) pour éviter le décalage de timezone
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     const calendarDate = new Date(dateStr + "T00:00:00");
 
     try {

@@ -830,11 +830,11 @@ const dayOfWeekMap: Record<string, number> = {
 
 // Mapping type de séance → types d'activité compatibles
 const sessionTypeCompatibility: Record<string, string[]> = {
-  easy: ["running", "trail_running"],
-  recovery: ["running", "trail_running"],
-  tempo: ["running", "trail_running"],
+  easy: ["running", "trail_running", "track_running"],
+  recovery: ["running", "trail_running", "track_running"],
+  tempo: ["running", "trail_running", "track_running"],
   interval: ["running", "trail_running", "track_running"],
-  long_run: ["running", "trail_running"],
+  long_run: ["running", "trail_running", "track_running"],
   rest: [], // pas de matching pour les jours de repos
 };
 
@@ -853,11 +853,10 @@ function getSessionDate(
 }
 
 function isSameDay(d1: Date, d2: Date): boolean {
-  return (
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-  );
+  // Comparer les dates en format local YYYY-MM-DD pour éviter les décalages de timezone
+  const toLocalDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return toLocalDateStr(d1) === toLocalDateStr(d2);
 }
 
 function computeMatchScore(
