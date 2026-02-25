@@ -436,7 +436,7 @@ function getSessionSchema(planningMode: "time" | "distance"): string {
   "targetPace": "string|null - ex: 5:30/km",
   "targetHRZone": "string|null - ex: Z2, Z3-Z4",
   "intensity": "low|moderate|high|very_high",
-  "workoutSummary": "string|null - résumé court : 3×10' Z4, 8×400m, 1h30 prog, null si séance simple"
+  "workoutSummary": "string|null - résumé court AVEC récup : 8×400m r=1'30, 3×10' Z4 r=3', 2×(6×200m r=30s) R=3', null si séance simple"
 }`;
 }
 
@@ -474,9 +474,9 @@ ${getModeInstruction(planningMode)}
 STABILITÉ MAXIMALE : conserve le plan IDENTIQUE sauf si une activité récente justifie un ajustement.
 - Max 2-3 séances modifiées par mise à jour
 - Modifier uniquement si signaux clairs :
-  • Surcharge : TE > 4.5, FC > 90% FCmax, ou séances réalisées bien plus dures que prévu → RÉDUIRE l'intensité/volume des 2-3 jours suivants de 10-15%
-  • Sous-charge : TE < 2.0, séances réalisées bien plus faciles que prévu → AUGMENTER légèrement l'intensité/volume de 5-10%
-  • Écart planifié/réalisé > 20% sur distance ou durée → ajuster les séances suivantes
+  • Surcharge (réalisé > prévu) : TE > 4.5, FC > 90% FCmax, ou distance/durée réalisée > prévu de +20% → RÉDUIRE les 2-3 jours suivants de 10-15%
+  • Sous-charge (réalisé < prévu) : TE < 2.0, ou distance/durée réalisée < prévu de -20% → AUGMENTER légèrement de 5-10%
+  • LOGIQUE IMPORTANTE : si l'athlète fait MOINS que prévu → augmenter ou maintenir, si l'athlète fait PLUS que prévu → réduire
 - Sans signal problématique → 0 modification
 - Adaptation PROGRESSIVE : ne jamais changer brutalement (ex: passer de 10km à 15km d'un coup)
 
