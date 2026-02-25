@@ -9,7 +9,7 @@ import { matchActivitiesToPlans } from "./training";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GarminRaw = any;
 
-export async function syncActivities(count: number = 20) {
+export async function syncActivities(count: number = 64) {
   const user = await getAuthenticatedUser();
   const client = await getGarminClient();
 
@@ -362,7 +362,7 @@ export async function syncAll() {
   }
 
   try {
-    results.activities = await syncActivities(20);
+    results.activities = await syncActivities(64);
   } catch (e) {
     if (isRedirectError(e)) throw e;
     console.error("syncActivities failed:", e);
