@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="stride-gradient-apple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded rect for Apple -->
+  <rect width="180" height="180" rx="40" fill="url(#stride-gradient-apple)"/>
+  <!-- Stylized S with motion lines -->
+  <path
+    d="M112 56c0-8.5-8.5-17-22.5-17S67 47.5 67 56c0 11.3 11.3 17 22.5 22.5S112 90 112 101.3c0 8.5-8.5 17-22.5 17S67 110 67 101.3"
+    fill="none"
+    stroke="white"
+    stroke-width="14"
+    stroke-linecap="round"
+  />
+  <!-- Motion lines -->
+  <line x1="39" y1="67.5" x2="56" y2="67.5" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.8"/>
+  <line x1="34" y1="90" x2="51" y2="90" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.6"/>
+  <line x1="39" y1="112.5" x2="56" y2="112.5" stroke="white" stroke-width="8" stroke-linecap="round" opacity="0.8"/>
+</svg>
