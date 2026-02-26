@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, MoreVertical, Clock, Ruler } from "lucide-react";
+import { ExternalLink, MoreVertical, Clock, Ruler, Upload, Loader2 } from "lucide-react";
 import { toggleSessionCompleted, updateSessionDisplayMode } from "@/actions/training";
+import { exportSessionToGarmin } from "@/actions/garmin-export";
 
 interface LinkedActivity {
   id: string;
@@ -109,6 +110,7 @@ function getVariationIcon(planned: number, actual: number, tolerance: number = 0
 export default function TrainingSessionCard({ session, planningMode }: Props) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const colorClass = typeColors[session.sessionType] ?? "border-l-[var(--border-default)] bg-[var(--bg-surface-hover)]";
@@ -141,6 +143,23 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
     await updateSessionDisplayMode(session.id, newMode);
     setMenuOpen(false);
     router.refresh();
+  }
+
+  async function handleExportToGarmin() {
+    setExporting(true);
+    try {
+      const result = await exportSessionToGarmin(session.id);
+      if (result.success) {
+        alert("Séance exportée vers Garmin Connect !");
+      } else {
+        alert(`Erreur: ${result.error}`);
+      }
+    } catch {
+      alert("Erreur lors de l'export");
+    } finally {
+      setExporting(false);
+      setMenuOpen(false);
+    }
   }
 
   return (
@@ -360,6 +379,19 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
                 <Ruler className="h-3.5 w-3.5" />
                 Distance
                 {effectiveMode === "distance" && <span className="ml-auto text-xs">✓</span>}
+              </button>
+              <div className="my-1 border-t border-[var(--border-default)]" />
+              <button
+                onClick={handleExportToGarmin}
+                disabled={exporting}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-50"
+              >
+                {exporting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                Exporter vers Garmin
               </button>
             </div>
           )}

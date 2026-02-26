@@ -1,6 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Calendar, Clock, ArrowRight, Footprints, Target } from "lucide-react";
+import { Calendar, Clock, ArrowRight, Footprints, Target, Upload, Loader2 } from "lucide-react";
 import { Card, Badge } from "@/components/shared";
+import { exportSessionToGarmin } from "@/actions/garmin-export";
 
 type NextSessionData = {
   session: {
@@ -70,11 +74,29 @@ function formatSessionDate(date: Date): { label: string; isToday: boolean; isTom
 }
 
 export default function NextSessionCard({ data }: Props) {
+  const [exporting, setExporting] = useState(false);
+
   if (!data) return null;
 
   const { session, plan, weekNumber, sessionDate } = data;
   const colors = typeColors[session.sessionType] ?? { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200" };
   const dateInfo = formatSessionDate(sessionDate);
+
+  async function handleExportToGarmin() {
+    setExporting(true);
+    try {
+      const result = await exportSessionToGarmin(session.id);
+      if (result.success) {
+        alert("Séance exportée vers Garmin Connect !");
+      } else {
+        alert(`Erreur: ${result.error}`);
+      }
+    } catch {
+      alert("Erreur lors de l'export");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <Card padding="none" className={`overflow-hidden border ${colors.border}`}>
@@ -162,6 +184,22 @@ export default function NextSessionCard({ data }: Props) {
               </span>
             </div>
           )}
+        </div>
+
+        {/* Bouton export Garmin */}
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={handleExportToGarmin}
+            disabled={exporting}
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${colors.text} ${colors.border} border hover:bg-white/50 disabled:opacity-50`}
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            Exporter vers Garmin
+          </button>
         </div>
       </div>
     </Card>
