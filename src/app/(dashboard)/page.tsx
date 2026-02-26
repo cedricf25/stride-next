@@ -3,6 +3,7 @@ import { fetchGarminActivities } from "@/actions/garmin";
 import ActivityList from "@/components/ActivityList";
 import AiAnalysis from "@/components/AiAnalysis";
 import HealthSummaryWidgets from "@/components/health/HealthSummaryWidgets";
+import TrainingIntensityCard from "@/components/health/TrainingIntensityCard";
 import { PageContainer, AlertBanner } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,11 @@ export default async function DashboardPage() {
 
       {/* Health Summary */}
       <HealthSummaryWidgets />
+
+      {/* Training Intensity */}
+      <section className="mt-6">
+        <TrainingIntensityCard />
+      </section>
 
       {/* Activities */}
       <section className="mt-8">

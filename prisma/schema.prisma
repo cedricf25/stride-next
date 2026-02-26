@@ -250,6 +250,10 @@ model HealthMetric {
   stressLevel         Int?
   bodyBattery         Int?
 
+  // Intensity minutes (données Garmin)
+  moderateIntensityMinutes  Int?  // Minutes modérées (zone aérobie faible)
+  vigorousIntensityMinutes  Int?  // Minutes vigoureuses (zone aérobie élevée)
+
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

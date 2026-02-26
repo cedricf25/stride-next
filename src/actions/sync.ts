@@ -277,6 +277,8 @@ export async function syncHealthMetrics(days: number = 14) {
       let muscleMass: number | null = null;
       let totalSteps: number | null = null;
       let stressLevel: number | null = null;
+      let moderateIntensityMinutes: number | null = null;
+      let vigorousIntensityMinutes: number | null = null;
 
       try {
         const hr = (await client.getHeartRate(date)) as GarminRaw;
@@ -303,7 +305,7 @@ export async function syncHealthMetrics(days: number = 14) {
         totalSteps = typeof steps === "number" ? steps : null;
       } catch { /* ignore */ }
 
-      // Fetch daily stress level from user summary
+      // Fetch daily stress level and intensity minutes from user summary
       if (displayName) {
         try {
           const summaryData = await client.get<GarminRaw>(
@@ -316,11 +318,18 @@ export async function syncHealthMetrics(days: number = 14) {
           } else if (summaryData?.maxStressLevel != null) {
             stressLevel = summaryData.maxStressLevel;
           }
+          // Intensity minutes
+          if (summaryData?.moderateIntensityMinutes != null) {
+            moderateIntensityMinutes = summaryData.moderateIntensityMinutes;
+          }
+          if (summaryData?.vigorousIntensityMinutes != null) {
+            vigorousIntensityMinutes = summaryData.vigorousIntensityMinutes;
+          }
         } catch { /* ignore */ }
       }
 
       // Only upsert if we have at least some data
-      if (restingHR !== null || weight !== null || totalSteps !== null || stressLevel !== null) {
+      if (restingHR !== null || weight !== null || totalSteps !== null || stressLevel !== null || moderateIntensityMinutes !== null) {
         await prisma.healthMetric.upsert({
           where: {
             userId_calendarDate: {
@@ -338,6 +347,8 @@ export async function syncHealthMetrics(days: number = 14) {
             muscleMass,
             totalSteps,
             stressLevel,
+            moderateIntensityMinutes,
+            vigorousIntensityMinutes,
           },
           create: {
             userId: user.id,
@@ -351,6 +362,8 @@ export async function syncHealthMetrics(days: number = 14) {
             muscleMass,
             totalSteps,
             stressLevel,
+            moderateIntensityMinutes,
+            vigorousIntensityMinutes,
           },
         });
         synced++;
@@ -401,11 +414,11 @@ export async function syncAll() {
 
   const isFirstSync = activityCount === 0 && sleepCount === 0 && healthCount === 0;
 
-  // Première sync : 180 jours, sinon 8 jours
+  // Première sync : 180 jours, sinon 28 jours (pour couvrir la période d'intensité d'entraînement)
   const activityCount180Days = 200; // ~200 activités pour couvrir 180 jours
-  const activityCount8Days = 20;    // ~20 activités pour couvrir 8 jours
-  const syncDays = isFirstSync ? 180 : 8;
-  const syncActivitiesCount = isFirstSync ? activityCount180Days : activityCount8Days;
+  const activityCount28Days = 30;   // ~30 activités pour couvrir 28 jours
+  const syncDays = isFirstSync ? 180 : 28;
+  const syncActivitiesCount = isFirstSync ? activityCount180Days : activityCount28Days;
 
   const results = {
     profile: { synced: false },

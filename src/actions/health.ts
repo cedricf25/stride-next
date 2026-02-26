@@ -84,6 +84,127 @@ export interface FatigueTrendData {
   message: string;
 }
 
+export interface TrainingIntensityData {
+  // Période analysée
+  periodStart: string;
+  periodEnd: string;
+  // Minutes totales sur la période
+  anaerobic: number;       // Minutes très intenses (vigoureuses x2)
+  aerobicHigh: number;     // Minutes vigoureuses
+  aerobicLow: number;      // Minutes modérées
+  // Plages optimales (recommandations OMS : 150-300 min modérées ou 75-150 vigoureuses/semaine)
+  optimalMin: number;
+  optimalMax: number;
+  // Message et statut
+  status: "low" | "optimal" | "high";
+  statusLabel: string;     // Titre affiché (ex: "Manque d'anaérobie")
+  message: string;
+}
+
+export async function fetchTrainingIntensity(
+  days: number = 28
+): Promise<TrainingIntensityData> {
+  const user = await getAuthenticatedUser();
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  // Récupérer les activités pour calculer les minutes d'intensité basées sur Training Effect
+  const activities = await prisma.activity.findMany({
+    where: {
+      userId: user.id,
+      startTimeLocal: { gte: since },
+    },
+    select: {
+      duration: true,
+      aerobicTrainingEffect: true,
+      anaerobicTrainingEffect: true,
+    },
+  });
+
+  // Calculer les minutes par catégorie basées sur Training Effect
+  // Garmin utilise le TE pour pondérer les minutes d'activité
+  let anaerobic = 0;
+  let aerobicHigh = 0;
+  let aerobicLow = 0;
+
+  for (const activity of activities) {
+    const durationMin = (activity.duration ?? 0) / 60;
+    const aerobicTE = activity.aerobicTrainingEffect ?? 0;
+    const anaerobicTE = activity.anaerobicTrainingEffect ?? 0;
+
+    // Coefficients calibrés sur les valeurs Garmin réelles
+    // Minutes anaérobies : pondérées par anaerobicTE
+    anaerobic += Math.round(durationMin * (anaerobicTE / 2));
+
+    // Minutes aérobie élevée : aerobicTE >= 2.5 (intensité élevée)
+    if (aerobicTE >= 2.5) {
+      aerobicHigh += Math.round(durationMin * aerobicTE * 0.48);
+    }
+
+    // Minutes aérobie faible : toute activité avec aerobicTE > 0
+    if (aerobicTE >= 1) {
+      aerobicLow += Math.round(durationMin * aerobicTE * 0.2);
+    }
+  }
+
+  let status: "low" | "optimal" | "high";
+  let statusLabel: string;
+  let message: string;
+
+  // Déterminer si chaque catégorie est dans sa plage optimale
+  // Garmin semble avoir un seuil anaérobie plus élevé (~250+ pour être "ok")
+  const anaerobicLow = anaerobic < 250;
+  const anaerobicHigh = anaerobic > 500;
+  const aerobicHighLow = aerobicHigh < 800;
+  const aerobicHighHigh = aerobicHigh > 1600;
+  const aerobicLowLow = aerobicLow < 400;
+  const aerobicLowHigh = aerobicLow > 900;
+
+  // Calculer le statut global basé sur les catégories
+  const hasDeficit = anaerobicLow || aerobicHighLow || aerobicLowLow;
+  const hasExcess = anaerobicHigh || aerobicHighHigh || aerobicLowHigh;
+
+  if (hasExcess && !hasDeficit) {
+    status = "high";
+    statusLabel = "Volume élevé";
+    message = "Volume très élevé. Surveillez la récupération.";
+  } else if (hasDeficit) {
+    status = "low";
+    // Identifier le déficit principal (priorité : anaérobie > aérobie élevée > aérobie faible)
+    if (anaerobicLow) {
+      statusLabel = "Manque d'anaérobie";
+      message = "Vos entraînements manquent de quelques activités anaérobies très intenses. Celles-ci augmenteront votre vitesse et votre capacité anaérobie au fil du temps.";
+    } else if (aerobicHighLow) {
+      statusLabel = "Manque d'aérobie élevée";
+      message = "Ajoutez des séances tempo ou seuil pour développer votre endurance à haute intensité.";
+    } else {
+      statusLabel = "Manque d'activité";
+      message = "Augmentez progressivement le volume de vos entraînements.";
+    }
+  } else {
+    status = "optimal";
+    statusLabel = "Bon équilibre";
+    message = "Bon équilibre d'intensité. Continuez ainsi.";
+  }
+
+  // Plages globales pour l'interface (non utilisées pour le calcul)
+  const optimalMin = 600;
+  const optimalMax = 1200;
+
+  return {
+    periodStart: since.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+    periodEnd: new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+    anaerobic,
+    aerobicHigh,
+    aerobicLow,
+    optimalMin,
+    optimalMax,
+    status,
+    statusLabel,
+    message,
+  };
+}
+
 export async function fetchFatigueTrend(
   days: number = 14
 ): Promise<FatigueTrendData> {
