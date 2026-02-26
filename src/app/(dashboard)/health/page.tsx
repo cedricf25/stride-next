@@ -2,6 +2,7 @@ import Link from "next/link";
 import { fetchSleepHistory, fetchHealthHistory } from "@/actions/health";
 import SleepChart from "@/components/health/SleepChart";
 import HrvChart from "@/components/health/HrvChart";
+import StressChart from "@/components/health/StressChart";
 import RestingHRChart from "@/components/health/RestingHRChart";
 import WeightChart from "@/components/health/WeightChart";
 import StepsChart from "@/components/health/StepsChart";
@@ -21,6 +22,7 @@ export default async function HealthPage() {
   const cards = [
     { href: "/health/sleep", component: <SleepChart data={sleepData} /> },
     { href: "/health/hrv", component: <HrvChart data={sleepData} /> },
+    { href: "/health/stress", component: <StressChart data={sleepData} /> },
     { href: "/health/heart-rate", component: <RestingHRChart data={healthData} /> },
     { href: "/health/weight", component: <WeightChart data={healthData} /> },
     { href: "/health/steps", component: <StepsChart data={healthData} /> },

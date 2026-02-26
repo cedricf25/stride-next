@@ -37,6 +37,7 @@ model User {
   healthMetrics    HealthMetric[]
   trainingPlans    TrainingPlan[]
   racePredictions  RacePrediction[]
+  healthAnalyses   HealthAnalysis[]
 }
 
 model Session {
@@ -186,7 +187,7 @@ model ActivityAnalysis {
   activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
   analysis    String   @db.LongText
-  model       String   @default("gemini-2.0-flash")
+  model       String   @default("gemini-3-flash-preview")
   createdAt   DateTime @default(now())
 
   @@index([activityId])
@@ -370,4 +371,24 @@ model RacePrediction {
 
   @@index([userId])
   @@index([generatedAt])
+}
+
+model HealthAnalysis {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  pageType        String   // "hrv", "sleep", "heart-rate", "weight", "body-battery", "steps"
+  analysis        String   @db.LongText
+  model           String   @default("gemini-3-flash-preview")
+
+  // Période analysée
+  periodStart     DateTime @db.Date
+  periodEnd       DateTime @db.Date
+  dataPointsCount Int      @default(0)
+
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, pageType])
+  @@index([userId])
 }

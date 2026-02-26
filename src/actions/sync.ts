@@ -185,6 +185,14 @@ export async function syncSleepData(days: number = 14) {
         endBodyBattery = sleep.sleepBodyBattery[sleep.sleepBodyBattery.length - 1]?.value ?? null;
       }
 
+      // Parse sleep timestamps - Garmin returns milliseconds since epoch
+      const sleepStart = dto.sleepStartTimestampLocal
+        ? new Date(dto.sleepStartTimestampLocal)
+        : null;
+      const sleepEnd = dto.sleepEndTimestampLocal
+        ? new Date(dto.sleepEndTimestampLocal)
+        : null;
+
       await prisma.sleepRecord.upsert({
         where: {
           userId_calendarDate: {
@@ -193,6 +201,8 @@ export async function syncSleepData(days: number = 14) {
           },
         },
         update: {
+          sleepStartTimestamp: sleepStart,
+          sleepEndTimestamp: sleepEnd,
           totalSleepSeconds: dto.sleepTimeSeconds ?? null,
           deepSleepSeconds: dto.deepSleepSeconds ?? null,
           lightSleepSeconds: dto.lightSleepSeconds ?? null,
@@ -200,9 +210,9 @@ export async function syncSleepData(days: number = 14) {
           awakeSleepSeconds: dto.awakeSleepSeconds ?? null,
           sleepScore: dto.sleepScores?.overall?.value ?? null,
           sleepQualifier: dto.sleepScores?.overall?.qualifierKey ?? null,
-          avgOvernightHRV: sleep.restingHeartRate ?? null,
-          restingHeartRate: dto.averageHeartRate ?? null,
-          avgSleepStress: dto.averageStressLevel ?? null,
+          avgOvernightHRV: sleep.avgOvernightHrv ?? null,
+          restingHeartRate: sleep.restingHeartRate ?? null,
+          avgSleepStress: dto.avgSleepStress ?? null,
           bodyBatteryChange,
           startBodyBattery,
           endBodyBattery,
@@ -210,12 +220,8 @@ export async function syncSleepData(days: number = 14) {
         create: {
           userId: user.id,
           calendarDate,
-          sleepStartTimestamp: dto.sleepStartTimestampLocal
-            ? new Date(dto.sleepStartTimestampLocal)
-            : null,
-          sleepEndTimestamp: dto.sleepEndTimestampLocal
-            ? new Date(dto.sleepEndTimestampLocal)
-            : null,
+          sleepStartTimestamp: sleepStart,
+          sleepEndTimestamp: sleepEnd,
           totalSleepSeconds: dto.sleepTimeSeconds ?? null,
           deepSleepSeconds: dto.deepSleepSeconds ?? null,
           lightSleepSeconds: dto.lightSleepSeconds ?? null,
@@ -223,9 +229,9 @@ export async function syncSleepData(days: number = 14) {
           awakeSleepSeconds: dto.awakeSleepSeconds ?? null,
           sleepScore: dto.sleepScores?.overall?.value ?? null,
           sleepQualifier: dto.sleepScores?.overall?.qualifierKey ?? null,
-          avgOvernightHRV: sleep.restingHeartRate ?? null,
-          restingHeartRate: dto.averageHeartRate ?? null,
-          avgSleepStress: dto.averageStressLevel ?? null,
+          avgOvernightHRV: sleep.avgOvernightHrv ?? null,
+          restingHeartRate: sleep.restingHeartRate ?? null,
+          avgSleepStress: dto.avgSleepStress ?? null,
           bodyBatteryChange,
           startBodyBattery,
           endBodyBattery,
@@ -243,6 +249,13 @@ export async function syncSleepData(days: number = 14) {
 export async function syncHealthMetrics(days: number = 14) {
   const user = await getAuthenticatedUser();
   const client = await getGarminClient();
+
+  // Get user displayName for stress endpoint
+  let displayName: string | null = null;
+  try {
+    const profile = (await client.getUserProfile()) as GarminRaw;
+    displayName = profile?.displayName ?? null;
+  } catch { /* ignore */ }
 
   let synced = 0;
   const today = new Date();
@@ -263,6 +276,7 @@ export async function syncHealthMetrics(days: number = 14) {
       let bodyFat: number | null = null;
       let muscleMass: number | null = null;
       let totalSteps: number | null = null;
+      let stressLevel: number | null = null;
 
       try {
         const hr = (await client.getHeartRate(date)) as GarminRaw;
@@ -289,8 +303,24 @@ export async function syncHealthMetrics(days: number = 14) {
         totalSteps = typeof steps === "number" ? steps : null;
       } catch { /* ignore */ }
 
+      // Fetch daily stress level from user summary
+      if (displayName) {
+        try {
+          const summaryData = await client.get<GarminRaw>(
+            `https://connectapi.garmin.com/usersummary-service/usersummary/daily/${displayName}?calendarDate=${dateStr}`
+          );
+          if (summaryData?.averageStressLevel != null) {
+            stressLevel = summaryData.averageStressLevel;
+          } else if (summaryData?.stressLevel != null) {
+            stressLevel = summaryData.stressLevel;
+          } else if (summaryData?.maxStressLevel != null) {
+            stressLevel = summaryData.maxStressLevel;
+          }
+        } catch { /* ignore */ }
+      }
+
       // Only upsert if we have at least some data
-      if (restingHR !== null || weight !== null || totalSteps !== null) {
+      if (restingHR !== null || weight !== null || totalSteps !== null || stressLevel !== null) {
         await prisma.healthMetric.upsert({
           where: {
             userId_calendarDate: {
@@ -307,6 +337,7 @@ export async function syncHealthMetrics(days: number = 14) {
             bodyFatPercentage: bodyFat,
             muscleMass,
             totalSteps,
+            stressLevel,
           },
           create: {
             userId: user.id,
@@ -319,6 +350,7 @@ export async function syncHealthMetrics(days: number = 14) {
             bodyFatPercentage: bodyFat,
             muscleMass,
             totalSteps,
+            stressLevel,
           },
         });
         synced++;

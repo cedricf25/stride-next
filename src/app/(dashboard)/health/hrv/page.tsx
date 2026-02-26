@@ -1,11 +1,16 @@
 import { fetchSleepHistory } from "@/actions/health";
+import { fetchHrvAnalysis } from "@/actions/gemini";
 import HrvChart from "@/components/health/HrvChart";
+import HrvAiAnalysis from "@/components/health/HrvAiAnalysis";
 import { PageContainer, BackLink, DataTable } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
 export default async function HrvDetailPage() {
-  const data = await fetchSleepHistory(90);
+  const [data, initialAnalysis] = await Promise.all([
+    fetchSleepHistory(90),
+    fetchHrvAnalysis(),
+  ]);
 
   const withHrv = data.filter((d) => d.avgOvernightHRV != null);
   const values = withHrv.map((d) => d.avgOvernightHRV!);
@@ -86,6 +91,8 @@ export default async function HrvDetailPage() {
         rowKey={(d) => d.calendarDate.toISOString()}
         className="mt-6"
       />
+
+      <HrvAiAnalysis initialAnalysis={initialAnalysis} />
     </PageContainer>
   );
 }
