@@ -13,9 +13,12 @@ Fournis :
 2. **Analyse des splits** : Régularité, stratégie d'allure (negative split, etc.)
 3. **Fréquence cardiaque** : Zones d'effort, récupération, dérive cardiaque
 4. **Dynamique de course** : Cadence, temps de contact au sol, oscillation verticale si disponible
-5. **Training Effect** : Interprétation de l'effet d'entraînement aérobie/anaérobie
-6. **Points à améliorer** : Recommandations spécifiques basées sur les données
-7. **Comparaison** : Positionnement par rapport aux séances récentes si contexte fourni
+5. **Puissance** : Running Power moyenne/max/normalisée (si disponible), efficacité énergétique
+6. **Stamina** : Analyse du stamina restant en fin de séance et potentiel (si disponible)
+7. **Dépense énergétique** : Calories brûlées, rapport effort/distance
+8. **Training Effect** : Interprétation de l'effet d'entraînement aérobie/anaérobie
+9. **Points à améliorer** : Recommandations spécifiques basées sur les données
+10. **Comparaison** : Positionnement par rapport aux séances récentes si contexte fourni
 
 Sois précis, utilise les chiffres, et donne des conseils actionnables.
 Réponds en français.`;
@@ -187,6 +190,26 @@ ${planContext ? `## Plan d'entraînement actif\n${JSON.stringify(planContext, nu
   }
 }
 
+export async function deleteActivityAnalysis(garminActivityId: number): Promise<void> {
+  const activity = await prisma.activity.findUnique({
+    where: { garminActivityId: BigInt(garminActivityId) },
+    select: { id: true },
+  });
+
+  if (activity) {
+    await prisma.activityAnalysis.deleteMany({
+      where: { activityId: activity.id },
+    });
+  }
+}
+
+export async function reanalyzeActivity(
+  garminActivityId: number
+): Promise<AnalysisResponse> {
+  await deleteActivityAnalysis(garminActivityId);
+  return analyzeActivity(garminActivityId);
+}
+
 export async function analyzeActivity(
   garminActivityId: number
 ): Promise<AnalysisResponse> {
@@ -216,7 +239,7 @@ export async function analyzeActivity(
         id: { not: activity.id },
       },
       orderBy: { startTimeLocal: "desc" },
-      take: 10,
+      take: 16,
     });
 
     const ai = getAI();
@@ -229,12 +252,18 @@ export async function analyzeActivity(
       averageSpeed: activity.averageSpeed,
       averageHR: activity.averageHR,
       maxHR: activity.maxHR,
+      calories: activity.calories,
       elevationGain: activity.elevationGain,
       elevationLoss: activity.elevationLoss,
       averageCadence: activity.averageCadence,
       averageStrideLength: activity.averageStrideLength,
       averageGCT: activity.averageGCT,
       averageVerticalOscillation: activity.averageVerticalOscillation,
+      averagePower: activity.averagePower,
+      maxPower: activity.maxPower,
+      normalizedPower: activity.normalizedPower,
+      staminaPercent: activity.staminaPercent,
+      potentialStamina: activity.potentialStamina,
       aerobicTrainingEffect: activity.aerobicTrainingEffect,
       anaerobicTrainingEffect: activity.anaerobicTrainingEffect,
       trainingStressScore: activity.trainingStressScore,
@@ -282,7 +311,7 @@ ${JSON.stringify(activityData, null, 2)}
 ## Profil coureur
 ${JSON.stringify(userProfile, null, 2)}
 
-## 10 dernières séances (contexte)
+## 16 dernières séances (contexte)
 ${JSON.stringify(context, null, 2)}`;
 
     const response = await ai.models.generateContent({
@@ -290,7 +319,7 @@ ${JSON.stringify(context, null, 2)}`;
       contents: prompt,
       config: {
         systemInstruction: ACTIVITY_SYSTEM_PROMPT,
-        temperature: 0.7,
+        temperature: 0.1,
       },
     });
 

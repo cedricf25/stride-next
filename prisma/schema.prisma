@@ -123,6 +123,15 @@ model Activity {
   averageVerticalOscillation Float?  // (cm)
   averageVerticalRatio    Float?     // (%)
 
+  // Puissance (Running Power)
+  averagePower            Float?     // Watts
+  maxPower                Float?     // Watts
+  normalizedPower         Float?     // Watts (NP)
+
+  // Stamina
+  staminaPercent          Float?     // % restant en fin d'activité
+  potentialStamina        Float?     // Potentiel stamina
+
   // Training metrics
   aerobicTrainingEffect   Float?
   anaerobicTrainingEffect Float?

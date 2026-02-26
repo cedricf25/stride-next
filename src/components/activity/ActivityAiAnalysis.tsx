@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
-import { Sparkles } from "lucide-react";
-import { analyzeActivity } from "@/actions/gemini";
+import { useCallback, useState } from "react";
+import { Sparkles, RefreshCw } from "lucide-react";
+import { analyzeActivity, reanalyzeActivity } from "@/actions/gemini";
 import MarkdownContent from "@/components/MarkdownContent";
 import { SectionHeader, Button, AlertBanner } from "@/components/shared";
 import { useAiAnalysis } from "@/hooks/useAiAnalysis";
@@ -18,6 +18,20 @@ export default function ActivityAiAnalysis({ activityId, existingAnalysis }: Pro
     initialAnalysis: existingAnalysis ?? "",
   });
 
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const [reanalysisResult, setReanalysisResult] = useState<string | null>(null);
+
+  const handleReanalyze = useCallback(async () => {
+    setReanalyzing(true);
+    const result = await reanalyzeActivity(activityId);
+    if (!result.error) {
+      setReanalysisResult(result.analysis);
+    }
+    setReanalyzing(false);
+  }, [activityId]);
+
+  const displayedAnalysis = reanalysisResult ?? analysis;
+
   return (
     <section>
       <SectionHeader
@@ -25,14 +39,25 @@ export default function ActivityAiAnalysis({ activityId, existingAnalysis }: Pro
         title="Analyse IA"
         className="mb-4"
       >
-        {!analysis && (
+        {!displayedAnalysis && (
           <Button variant="ai" onClick={handleAnalyze} loading={loading}>
             {loading ? "Analyse en cours..." : "Analyser cette course"}
           </Button>
         )}
+        {displayedAnalysis && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleReanalyze}
+            loading={reanalyzing}
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            {reanalyzing ? "Réanalyse..." : "Refaire l'analyse"}
+          </Button>
+        )}
       </SectionHeader>
 
-      {loading && (
+      {(loading || reanalyzing) && (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="rounded-xl border-l-4 border-l-[var(--bg-subtle)] bg-[var(--bg-surface)] shadow-sm p-5 space-y-3">
@@ -48,7 +73,7 @@ export default function ActivityAiAnalysis({ activityId, existingAnalysis }: Pro
         <AlertBanner variant="error">{error}</AlertBanner>
       )}
 
-      {analysis && <MarkdownContent content={analysis} />}
+      {displayedAnalysis && !reanalyzing && <MarkdownContent content={displayedAnalysis} />}
     </section>
   );
 }
