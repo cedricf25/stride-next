@@ -109,7 +109,7 @@ export default function NextSessionCard({ data }: Props) {
               {dateInfo.label}
             </span>
             {dateInfo.isToday && (
-              <Badge color="green" variant="solid" size="sm">
+              <Badge color="green" variant="soft" size="sm">
                 À faire
               </Badge>
             )}
