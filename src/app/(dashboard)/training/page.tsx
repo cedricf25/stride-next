@@ -1,7 +1,8 @@
 import { Plus, Target, Calendar } from "lucide-react";
-import { fetchTrainingPlans } from "@/actions/training";
+import { fetchTrainingPlans, fetchNextSession } from "@/actions/training";
 import { fetchFatigueTrend } from "@/actions/health";
 import FatigueTrendCard from "@/components/training/FatigueTrendCard";
+import NextSessionCard from "@/components/training/NextSessionCard";
 import {
   PageContainer,
   LinkButton,
@@ -22,9 +23,10 @@ function statusBadge(status: string) {
 }
 
 export default async function TrainingPage() {
-  const [plans, fatigue] = await Promise.all([
+  const [plans, fatigue, nextSession] = await Promise.all([
     fetchTrainingPlans(),
     fetchFatigueTrend(14),
+    fetchNextSession(),
   ]);
 
   return (
@@ -38,6 +40,16 @@ export default async function TrainingPage() {
           Nouveau plan
         </LinkButton>
       </div>
+
+      {/* Prochaine séance */}
+      {nextSession && (
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-medium text-[var(--text-secondary)]">
+            Prochaine séance
+          </h2>
+          <NextSessionCard data={nextSession} />
+        </div>
+      )}
 
       {/* Fatigue */}
       <div className="mb-6">

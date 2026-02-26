@@ -780,6 +780,118 @@ export async function toggleSessionCompleted(sessionId: string) {
   });
 }
 
+export async function fetchNextSession() {
+  const user = await getAuthenticatedUser();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Récupérer les plans actifs avec leurs semaines et sessions
+  const plans = await prisma.trainingPlan.findMany({
+    where: { userId: user.id, status: "active" },
+    include: {
+      weeks: {
+        include: { sessions: true },
+        orderBy: { weekNumber: "asc" },
+      },
+    },
+  });
+
+  if (plans.length === 0) return null;
+
+  // Mapping jour de la semaine français → numéro (lundi = 1, dimanche = 7)
+  const dayMap: Record<string, number> = {
+    lundi: 1,
+    mardi: 2,
+    mercredi: 3,
+    jeudi: 4,
+    vendredi: 5,
+    samedi: 6,
+    dimanche: 7,
+  };
+
+  function calcSessionDate(planStartDate: Date, weekNumber: number, dayOfWeek: string): Date {
+    const dayNum = dayMap[dayOfWeek.toLowerCase()] ?? 1;
+    const date = new Date(planStartDate);
+    const startDayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
+    const daysToAdd = (weekNumber - 1) * 7 + (dayNum - startDayOfWeek);
+    date.setDate(date.getDate() + daysToAdd);
+    return date;
+  }
+
+  type NextSessionResult = {
+    session: {
+      id: string;
+      dayOfWeek: string;
+      sessionType: string;
+      title: string;
+      description: string;
+      distance: number | null;
+      duration: number | null;
+      targetPace: string | null;
+      targetHRZone: string | null;
+      intensity: string;
+      workoutSummary: string | null;
+    };
+    plan: {
+      id: string;
+      name: string;
+      raceType: string;
+      planningMode: string;
+    };
+    weekNumber: number;
+    sessionDate: Date;
+  };
+
+  let nextSession: NextSessionResult | null = null;
+  let nextDate: Date | null = null;
+
+  for (const plan of plans) {
+    if (!plan.startDate) continue;
+
+    for (const week of plan.weeks) {
+      for (const session of week.sessions) {
+        // Ignorer les séances complétées et les jours de repos
+        if (session.completed || session.sessionType === "rest") continue;
+
+        const sessionDate = calcSessionDate(plan.startDate, week.weekNumber, session.dayOfWeek);
+        sessionDate.setHours(0, 0, 0, 0);
+
+        // Séance dans le futur ou aujourd'hui
+        if (sessionDate >= today) {
+          if (!nextDate || sessionDate < nextDate) {
+            nextDate = sessionDate;
+            nextSession = {
+              session: {
+                id: session.id,
+                dayOfWeek: session.dayOfWeek,
+                sessionType: session.sessionType,
+                title: session.title,
+                description: session.description,
+                distance: session.distance,
+                duration: session.duration,
+                targetPace: session.targetPace,
+                targetHRZone: session.targetHRZone,
+                intensity: session.intensity,
+                workoutSummary: session.workoutSummary,
+              },
+              plan: {
+                id: plan.id,
+                name: plan.name,
+                raceType: plan.raceType,
+                planningMode: plan.planningMode,
+              },
+              weekNumber: week.weekNumber,
+              sessionDate,
+            };
+          }
+        }
+      }
+    }
+  }
+
+  return nextSession;
+}
+
 export async function fetchPaceZones() {
   const user = await getAuthenticatedUser();
 
