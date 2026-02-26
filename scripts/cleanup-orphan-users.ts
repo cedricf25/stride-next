@@ -54,7 +54,7 @@ async function main() {
       where: { plan: { userId: user.id } },
     });
     await prisma.trainingPlan.deleteMany({ where: { userId: user.id } });
-    await prisma.racePrediction.deleteMany({ where: { userId: user.id } });
+    await prisma.racePredictionBatch.deleteMany({ where: { userId: user.id } });
     await prisma.session.deleteMany({ where: { userId: user.id } });
     await prisma.account.deleteMany({ where: { userId: user.id } });
     await prisma.user.delete({ where: { id: user.id } });

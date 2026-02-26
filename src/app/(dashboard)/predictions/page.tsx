@@ -1,13 +1,27 @@
-import { Timer, Info } from "lucide-react";
-import { fetchSavedPredictions } from "@/actions/predictions";
-import PredictionCard from "@/components/predictions/PredictionCard";
-import RefreshPredictionsButton from "@/components/predictions/RefreshPredictionsButton";
-import { PageContainer, EmptyState, AlertBanner } from "@/components/shared";
+import { Timer } from "lucide-react";
+import {
+  fetchSavedPredictions,
+  fetchPredictionHistory,
+  fetchPredictionBatch,
+  fetchPersonalBests,
+} from "@/actions/predictions";
+import { RefreshPredictionsButton, PredictionsClient } from "@/components/predictions";
+import { PageContainer } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
 
 export default async function PredictionsPage() {
-  const result = await fetchSavedPredictions();
+  // Récupérer toutes les données en parallèle
+  const [latestBatch, history, personalBests] = await Promise.all([
+    fetchSavedPredictions(),
+    fetchPredictionHistory(10),
+    fetchPersonalBests(),
+  ]);
+
+  // Récupérer les données complètes des batches pour le graphique d'évolution
+  const allBatches = await Promise.all(
+    history.slice(0, 5).map((h) => fetchPredictionBatch(h.id))
+  ).then((results) => results.filter((r): r is NonNullable<typeof r> => r !== null));
 
   return (
     <PageContainer>
@@ -18,54 +32,19 @@ export default async function PredictionsPage() {
             Prédictions de course
           </h1>
           <p className="mt-1 text-sm text-[var(--text-tertiary)]">
-            Estimations basées sur tes activités récentes, ton VO2max et des
-            modèles de prédiction (Riegel, Daniels)
+            Estimations basées sur tes activités, récupération et des modèles de
+            prédiction (Riegel, Daniels)
           </p>
         </div>
         <RefreshPredictionsButton />
       </div>
 
-      {!result ? (
-        <EmptyState
-          variant="dashed"
-          icon={<Timer className="h-10 w-10" />}
-          message="Aucune prédiction générée"
-          subtitle='Clique sur "Générer les prédictions" pour lancer l&apos;analyse IA'
-        />
-      ) : (
-        <>
-          <AlertBanner
-            variant="info"
-            icon={<Info className="h-5 w-5 text-blue-600" />}
-            className="mb-6"
-          >
-            <p className="text-sm leading-relaxed text-blue-800">
-              {result.summary}
-            </p>
-            <p className="mt-1 text-xs text-blue-500">
-              Généré le{" "}
-              {new Date(result.generatedAt).toLocaleDateString("fr-FR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </AlertBanner>
-
-          {/* Predictions grid */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {result.predictions.map((prediction) => (
-              <PredictionCard
-                key={prediction.distance}
-                prediction={prediction}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      <PredictionsClient
+        latestBatch={latestBatch}
+        history={history}
+        allBatches={allBatches}
+        personalBests={personalBests}
+      />
     </PageContainer>
   );
 }

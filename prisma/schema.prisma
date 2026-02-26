@@ -35,9 +35,9 @@ model User {
   activities       Activity[]
   sleepRecords     SleepRecord[]
   healthMetrics    HealthMetric[]
-  trainingPlans    TrainingPlan[]
-  racePredictions  RacePrediction[]
-  healthAnalyses   HealthAnalysis[]
+  trainingPlans           TrainingPlan[]
+  racePredictionBatches   RacePredictionBatch[]
+  healthAnalyses          HealthAnalysis[]
 }
 
 model Session {
@@ -359,10 +359,28 @@ model TrainingSession {
   @@index([weekId])
 }
 
-model RacePrediction {
+model RacePredictionBatch {
   id              String   @id @default(cuid())
   userId          String
   user            User     @relation(fields: [userId], references: [id])
+
+  generatedAt     DateTime @default(now())
+  summary         String   @db.Text
+  contextSnapshot String   @db.LongText  // JSON: données utilisées pour la génération
+  recoveryImpact  String?  @db.Text      // Impact de l'état de récupération
+  recommendations String?  @db.Text      // Recommandations d'entraînement
+  avgConfidence   Int?
+
+  predictions     RacePrediction[]
+
+  @@index([userId])
+  @@index([generatedAt])
+}
+
+model RacePrediction {
+  id              String   @id @default(cuid())
+  batchId         String
+  batch           RacePredictionBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
   distance        String   // "5km", "10km", "semi-marathon", "marathon", "trail"
   label           String
@@ -370,11 +388,13 @@ model RacePrediction {
   predictedPace   String
   confidence      Int      // 0-100
   comment         String   @db.Text
-  summary         String   @db.Text
-  generatedAt     DateTime @default(now())
 
-  @@index([userId])
-  @@index([generatedAt])
+  // Détails enrichis
+  estimatedSplits String?  @db.Text  // JSON: tableau des splits estimés
+  raceStrategy    String?  @db.Text  // Stratégie de course
+  heartRateZones  String?  @db.Text  // JSON: zones FC par phase
+
+  @@index([batchId])
 }
 
 model HealthAnalysis {
