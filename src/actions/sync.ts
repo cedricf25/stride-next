@@ -348,6 +348,23 @@ export async function syncUserProfile() {
 }
 
 export async function syncAll() {
+  const user = await getAuthenticatedUser();
+
+  // Vérifier si des données ont déjà été synchronisées
+  const [activityCount, sleepCount, healthCount] = await Promise.all([
+    prisma.activity.count({ where: { userId: user.id } }),
+    prisma.sleepRecord.count({ where: { userId: user.id } }),
+    prisma.healthMetric.count({ where: { userId: user.id } }),
+  ]);
+
+  const isFirstSync = activityCount === 0 && sleepCount === 0 && healthCount === 0;
+
+  // Première sync : 180 jours, sinon 8 jours
+  const activityCount180Days = 200; // ~200 activités pour couvrir 180 jours
+  const activityCount8Days = 20;    // ~20 activités pour couvrir 8 jours
+  const syncDays = isFirstSync ? 180 : 8;
+  const syncActivitiesCount = isFirstSync ? activityCount180Days : activityCount8Days;
+
   const results = {
     profile: { synced: false },
     activities: { synced: 0 },
@@ -364,21 +381,21 @@ export async function syncAll() {
   }
 
   try {
-    results.activities = await syncActivities(64);
+    results.activities = await syncActivities(syncActivitiesCount);
   } catch (e) {
     if (isRedirectError(e)) throw e;
     console.error("syncActivities failed:", e);
   }
 
   try {
-    results.sleep = await syncSleepData(14);
+    results.sleep = await syncSleepData(syncDays);
   } catch (e) {
     if (isRedirectError(e)) throw e;
     console.error("syncSleepData failed:", e);
   }
 
   try {
-    results.health = await syncHealthMetrics(14);
+    results.health = await syncHealthMetrics(syncDays);
   } catch (e) {
     if (isRedirectError(e)) throw e;
     console.error("syncHealthMetrics failed:", e);
@@ -394,7 +411,6 @@ export async function syncAll() {
 
   // Update last sync timestamp
   try {
-    const user = await getAuthenticatedUser();
     await prisma.user.update({
       where: { id: user.id },
       data: { lastSyncAt: new Date() },
