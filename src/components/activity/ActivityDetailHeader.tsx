@@ -41,8 +41,8 @@ export default function ActivityDetailHeader({ activity }: Props) {
     <div>
       <BackLink href="/" label="Retour" />
 
-      <h1 className="text-2xl font-bold text-[var(--text-primary)]">{activity.activityName}</h1>
-      <div className="mt-1 flex items-center gap-3 text-sm text-[var(--text-tertiary)]">
+      <h1 className="text-xl font-bold text-[var(--text-primary)] md:text-2xl">{activity.activityName}</h1>
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--text-tertiary)] md:gap-3">
         <span className="flex items-center gap-1">
           <Calendar className="h-4 w-4" />
           {formatDate(activity.startTimeLocal.toISOString())}
@@ -55,7 +55,7 @@ export default function ActivityDetailHeader({ activity }: Props) {
         )}
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:mt-6 md:gap-4 lg:grid-cols-6">
         {stats.map((s) => (
           <StatItem
             key={s.label}

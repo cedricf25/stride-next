@@ -170,17 +170,22 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
     >
       <button
         onClick={handleToggle}
-        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+        className={`-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${
+          session.completed ? "" : "hover:bg-[var(--bg-surface)]"
+        }`}
+        aria-label={session.completed ? "Marquer comme non complété" : "Marquer comme complété"}
+      >
+        <span className={`flex h-5 w-5 items-center justify-center rounded border ${
           session.completed
             ? "border-green-500 bg-green-500 text-white"
             : "border-[var(--border-default)] bg-[var(--bg-surface)]"
-        }`}
-      >
-        {session.completed && (
-          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
+        }`}>
+          {session.completed && (
+            <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </span>
       </button>
 
       <div className="flex-1">
@@ -350,50 +355,58 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-secondary)]"
-            title="Options"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-secondary)]"
+            aria-label="Options"
           >
-            <MoreVertical className="h-4 w-4" />
+            <MoreVertical className="h-5 w-5" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-lg">
-              <div className="px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
-                Afficher par
+            <>
+              {/* Backdrop pour fermer sur mobile */}
+              <div
+                className="fixed inset-0 z-10 md:hidden"
+                onClick={() => setMenuOpen(false)}
+                aria-hidden="true"
+              />
+              <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] py-2 shadow-lg">
+                <div className="px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                  Afficher par
+                </div>
+                <button
+                  onClick={() => handleDisplayModeChange("time")}
+                  className={`flex w-full items-center gap-2 px-3 py-3 text-left text-sm hover:bg-[var(--bg-surface-hover)] min-h-[44px] ${
+                    effectiveMode === "time" ? "text-blue-500" : "text-[var(--text-secondary)]"
+                  }`}
+                >
+                  <Clock className="h-4 w-4" />
+                  Temps
+                  {effectiveMode === "time" && <span className="ml-auto text-xs">✓</span>}
+                </button>
+                <button
+                  onClick={() => handleDisplayModeChange("distance")}
+                  className={`flex w-full items-center gap-2 px-3 py-3 text-left text-sm hover:bg-[var(--bg-surface-hover)] min-h-[44px] ${
+                    effectiveMode === "distance" ? "text-blue-500" : "text-[var(--text-secondary)]"
+                  }`}
+                >
+                  <Ruler className="h-4 w-4" />
+                  Distance
+                  {effectiveMode === "distance" && <span className="ml-auto text-xs">✓</span>}
+                </button>
+                <div className="my-1 border-t border-[var(--border-default)]" />
+                <button
+                  onClick={handleExportToGarmin}
+                  disabled={exporting}
+                  className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] min-h-[44px] disabled:opacity-50"
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  Exporter vers Garmin
+                </button>
               </div>
-              <button
-                onClick={() => handleDisplayModeChange("time")}
-                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-surface-hover)] ${
-                  effectiveMode === "time" ? "text-blue-500" : "text-[var(--text-secondary)]"
-                }`}
-              >
-                <Clock className="h-3.5 w-3.5" />
-                Temps
-                {effectiveMode === "time" && <span className="ml-auto text-xs">✓</span>}
-              </button>
-              <button
-                onClick={() => handleDisplayModeChange("distance")}
-                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-surface-hover)] ${
-                  effectiveMode === "distance" ? "text-blue-500" : "text-[var(--text-secondary)]"
-                }`}
-              >
-                <Ruler className="h-3.5 w-3.5" />
-                Distance
-                {effectiveMode === "distance" && <span className="ml-auto text-xs">✓</span>}
-              </button>
-              <div className="my-1 border-t border-[var(--border-default)]" />
-              <button
-                onClick={handleExportToGarmin}
-                disabled={exporting}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-50"
-              >
-                {exporting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Upload className="h-3.5 w-3.5" />
-                )}
-                Exporter vers Garmin
-              </button>
-            </div>
+            </>
           )}
         </div>
       )}

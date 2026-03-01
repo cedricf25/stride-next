@@ -21,21 +21,21 @@ export default async function ActivityDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-8">
       <ActivityDetailHeader activity={activity} />
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-4 md:mt-8 md:gap-6 lg:grid-cols-2">
         <TrainingEffectCard activity={activity} />
         <RunningDynamics activity={activity} />
       </div>
 
       {activity.splits.length > 0 && (
-        <div className="mt-8">
+        <div className="mt-6 md:mt-8">
           <SplitTable splits={activity.splits} />
         </div>
       )}
 
-      <div className="mt-8">
+      <div className="mt-6 md:mt-8">
         <ActivityAiAnalysis
           activityId={activity.garminActivityId}
           existingAnalysis={activity.analysis?.analysis ?? null}

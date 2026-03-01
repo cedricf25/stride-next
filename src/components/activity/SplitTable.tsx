@@ -26,10 +26,58 @@ export default function SplitTable({ splits }: Props) {
 
   return (
     <Card padding="none">
-      <h3 className="border-b border-[var(--border-default)] px-6 py-4 text-lg font-semibold text-[var(--text-primary)]">
+      <h3 className="border-b border-[var(--border-default)] px-4 py-3 text-base font-semibold text-[var(--text-primary)] md:px-6 md:py-4 md:text-lg">
         Splits par km
       </h3>
-      <div className="overflow-x-auto">
+
+      {/* Mobile: Card layout */}
+      <div className="space-y-2 p-3 md:hidden">
+        {splits.map((split) => {
+          const isFastest = split.averageSpeed === maxSpeed && speeds.length > 1;
+          const isSlowest = split.averageSpeed === minSpeed && speeds.length > 1;
+
+          return (
+            <div
+              key={`${split.splitType}-${split.splitNumber}`}
+              className={`rounded-lg p-3 ${
+                isFastest ? "bg-green-50" : isSlowest ? "bg-red-50" : "bg-[var(--bg-muted)]"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-[var(--text-primary)]">
+                  Km {split.splitNumber}
+                </span>
+                <span className={`text-lg font-bold ${
+                  isFastest ? "text-green-700" : isSlowest ? "text-red-700" : "text-[var(--text-primary)]"
+                }`}>
+                  {split.averageSpeed ? formatPace(split.averageSpeed) : "—"}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-4 gap-2 text-xs text-[var(--text-secondary)]">
+                <div>
+                  <span className="text-[var(--text-muted)]">FC</span>
+                  <span className="ml-1">{split.averageHR ?? "—"}</span>
+                </div>
+                <div>
+                  <span className="text-[var(--text-muted)]">Cad</span>
+                  <span className="ml-1">{split.averageCadence ? Math.round(split.averageCadence) : "—"}</span>
+                </div>
+                <div>
+                  <span className="text-[var(--text-muted)]">D+</span>
+                  <span className="ml-1">{split.elevationGain != null ? `${Math.round(split.elevationGain)}m` : "—"}</span>
+                </div>
+                <div>
+                  <span className="text-[var(--text-muted)]">GCT</span>
+                  <span className="ml-1">{split.averageGCT ? `${Math.round(split.averageGCT)}` : "—"}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: Table layout */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border-subtle)] text-left text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]">

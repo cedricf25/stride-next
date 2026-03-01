@@ -22,7 +22,7 @@ export default function PageContainer({
 }: PageContainerProps) {
   return (
     <div
-      className={`mx-auto ${maxWidthClasses[maxWidth]} px-6 py-8 ${className ?? ""}`}
+      className={`mx-auto ${maxWidthClasses[maxWidth]} px-4 py-6 md:px-6 md:py-8 ${className ?? ""}`}
     >
       {children}
     </div>

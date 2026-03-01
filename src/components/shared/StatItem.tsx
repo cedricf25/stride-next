@@ -30,12 +30,12 @@ export default function StatItem({
 
   if (variant === "card") {
     return (
-      <div className={`rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3 ${className ?? ""}`}>
-        <div className="mb-1 flex items-center gap-1.5">
+      <div className={`rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2.5 md:px-4 md:py-3 ${className ?? ""}`}>
+        <div className="mb-0.5 flex items-center gap-1.5 md:mb-1">
           {icon}
-          <span className="text-xs text-[var(--text-tertiary)]">{label}</span>
+          <span className="text-[10px] text-[var(--text-tertiary)] md:text-xs">{label}</span>
         </div>
-        <p className="text-sm font-semibold text-[var(--text-primary)]">{value}</p>
+        <p className="text-xs font-semibold text-[var(--text-primary)] md:text-sm">{value}</p>
       </div>
     );
   }

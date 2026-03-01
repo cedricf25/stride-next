@@ -1,5 +1,7 @@
 import { DatabaseZap } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import MobileHeader from "@/components/MobileHeader";
+import { MobileSidebarProvider } from "@/contexts/MobileSidebarContext";
 import { checkDbConnection } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/user";
 
@@ -12,8 +14,8 @@ export default async function DashboardLayout({
 
   if (!dbOk) {
     return (
-      <div className="flex h-screen items-center justify-center p-8">
-        <div className="max-w-md rounded-2xl border border-red-200 bg-[var(--bg-surface)] p-8 text-center shadow-sm">
+      <div className="flex min-h-screen items-center justify-center p-4 md:p-8">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-[var(--bg-surface)] p-6 text-center shadow-sm md:p-8">
           <DatabaseZap className="mx-auto mb-4 h-12 w-12 text-red-400" />
           <h1 className="text-lg font-bold text-[var(--text-primary)]">
             Base de données inaccessible
@@ -33,9 +35,14 @@ export default async function DashboardLayout({
   const user = await getAuthenticatedUser();
 
   return (
-    <div className="flex h-screen">
-      <Sidebar lastSyncAt={user.lastSyncAt?.toISOString() ?? null} />
-      <main className="flex-1 overflow-y-auto">{children}</main>
-    </div>
+    <MobileSidebarProvider>
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <Sidebar lastSyncAt={user.lastSyncAt?.toISOString() ?? null} />
+        <div className="flex flex-1 flex-col">
+          <MobileHeader />
+          <main className="flex-1 overflow-y-auto">{children}</main>
+        </div>
+      </div>
+    </MobileSidebarProvider>
   );
 }

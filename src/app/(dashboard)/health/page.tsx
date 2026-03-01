@@ -31,9 +31,9 @@ export default async function HealthPage() {
 
   return (
     <PageContainer>
-      <h1 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">Santé</h1>
+      <h1 className="mb-4 text-xl font-bold text-[var(--text-primary)] md:mb-6 md:text-2xl">Santé</h1>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
         {cards.map((card) => (
           <Link
             key={card.href}

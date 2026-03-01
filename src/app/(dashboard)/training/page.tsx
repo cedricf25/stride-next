@@ -31,8 +31,8 @@ export default async function TrainingPage() {
 
   return (
     <PageContainer>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Entraînement</h1>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:mb-6">
+        <h1 className="text-xl font-bold text-[var(--text-primary)] md:text-2xl">Entraînement</h1>
         <LinkButton
           href="/training/new"
           icon={<Plus className="h-4 w-4" />}
@@ -78,11 +78,11 @@ export default async function TrainingPage() {
 
             return (
               <a key={plan.id} href={`/training/${plan.id}`}>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 transition-shadow hover:shadow-md">
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 transition-shadow hover:shadow-md md:p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                      <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                        <h3 className="text-base font-semibold text-[var(--text-primary)] md:text-lg">
                           {plan.name}
                         </h3>
                         {statusBadge(plan.status)}
