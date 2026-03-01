@@ -33,10 +33,10 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col
+          fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-72 flex-col
           border-r border-[var(--border-default)] bg-[var(--bg-surface)]
           transform transition-transform duration-300 ease-in-out
-          md:static md:w-60 md:translate-x-0
+          md:static md:h-screen md:w-60 md:translate-x-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -56,7 +56,7 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -104,7 +104,7 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
         </div>
 
         {/* Sync button */}
-        <div className="border-t border-[var(--border-default)] px-3 py-3">
+        <div className="border-t border-[var(--border-default)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <SyncButton lastSyncAt={lastSyncAt} />
         </div>
       </aside>
