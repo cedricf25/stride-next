@@ -25,6 +25,10 @@ model User {
   maxHR           Int?
   lastSyncAt      DateTime?
 
+  // Nutrition fields
+  birthDate       DateTime?  @db.Date
+  gender          String?    // "male" | "female"
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -39,6 +43,12 @@ model User {
   trainingPlans           TrainingPlan[]
   racePredictionBatches   RacePredictionBatch[]
   healthAnalyses          HealthAnalysis[]
+
+  // Nutrition relations
+  meals               Meal[]
+  favoriteMeals       FavoriteMeal[]
+  nutritionGoal       NutritionGoal?
+  nutritionAnalyses   NutritionAnalysis[]
 }
 
 model Session {
@@ -463,5 +473,137 @@ model HealthAnalysis {
   createdAt       DateTime @default(now())
 
   @@unique([userId, pageType])
+  @@index([userId])
+}
+
+// ==========================================
+// NUTRITION MODELS
+// ==========================================
+
+model NutritionGoal {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Métabolisme calculé
+  bmr             Int      // Basal Metabolic Rate (kcal)
+  tdee            Int      // Total Daily Energy Expenditure (kcal)
+
+  // Objectifs
+  targetCalories  Int      // Objectif calorique quotidien
+  targetProtein   Int?     // grammes
+  targetCarbs     Int?     // grammes
+  targetFat       Int?     // grammes
+
+  // Configuration déficit/surplus
+  weeklyWeightGoal Float?  // kg/semaine (+/- : gain/perte)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Meal {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date            DateTime @db.Date
+  mealType        String   // "breakfast" | "lunch" | "dinner" | "snack"
+  name            String?
+  notes           String?  @db.Text
+
+  // Photo (optionnel)
+  imageData       String?  @db.LongText
+  imageMimeType   String?
+
+  // Totaux calculés
+  totalCalories   Int      @default(0)
+  totalProtein    Float    @default(0)
+  totalCarbs      Float    @default(0)
+  totalFat        Float    @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  foods           Food[]
+  analysis        MealAnalysis?
+
+  @@index([userId, date])
+  @@index([date])
+}
+
+model Food {
+  id          String   @id @default(cuid())
+  mealId      String
+  meal        Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  name        String
+  quantity    Float
+  unit        String   // "g" | "ml" | "portion"
+
+  calories    Int
+  protein     Float
+  carbs       Float
+  fat         Float
+
+  source      String   @default("manual") // "manual" | "ai_vision" | "favorite"
+  confidence  Int?     // 0-100 pour IA
+
+  createdAt   DateTime @default(now())
+
+  @@index([mealId])
+}
+
+model FavoriteMeal {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name            String
+  mealType        String   // "breakfast" | "lunch" | "dinner" | "snack"
+
+  // Totaux pré-calculés
+  totalCalories   Int
+  totalProtein    Float
+  totalCarbs      Float
+  totalFat        Float
+
+  // Aliments en JSON
+  foods           String   @db.Text  // JSON array des aliments
+
+  usageCount      Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model MealAnalysis {
+  id        String   @id @default(cuid())
+  mealId    String   @unique
+  meal      Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  analysis  String   @db.LongText
+  model     String   @default("gemini-2.0-flash")
+
+  createdAt DateTime @default(now())
+}
+
+model NutritionAnalysis {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  analysisType  String   // "daily" | "weekly" | "trends"
+  analysis      String   @db.LongText
+  model         String   @default("gemini-2.0-flash")
+
+  periodStart   DateTime @db.Date
+  periodEnd     DateTime @db.Date
+
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, analysisType])
   @@index([userId])
 }
