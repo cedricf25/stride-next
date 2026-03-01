@@ -159,12 +159,12 @@ export async function syncActivities(count: number = 64) {
         );
         const laps = splitsData?.lapDTOs;
 
-        if (Array.isArray(laps) && laps.length > 0) {
-          const dbActivity = await prisma.activity.findUnique({
-            where: { garminActivityId: activityId },
-          });
-          if (!dbActivity) continue;
+        const dbActivity = await prisma.activity.findUnique({
+          where: { garminActivityId: activityId },
+        });
+        if (!dbActivity) continue;
 
+        if (Array.isArray(laps) && laps.length > 0) {
           const kmSplits: { averageSpeed: number | null; splitNumber: number; distance: number }[] = [];
 
           for (const lap of laps) {
@@ -221,6 +221,44 @@ export async function syncActivities(count: number = 64) {
               });
             }
           }
+        }
+
+        // Sync intervalles structurés (splitSummaries) depuis getActivity
+        try {
+          const activityDetail = await client.getActivity({ activityId: Number(raw.activityId) });
+          const splitSummaries = activityDetail?.splitSummaries;
+
+          if (Array.isArray(splitSummaries) && splitSummaries.length > 0) {
+            // Filtrer les types d'intervalles pertinents (pas les RWD_*)
+            const relevantTypes = ["INTERVAL_WARMUP", "INTERVAL_ACTIVE", "INTERVAL_RECOVERY", "INTERVAL_COOLDOWN"];
+            const intervals = splitSummaries.filter(
+              (s: GarminRaw) => relevantTypes.includes(s.splitType)
+            );
+
+            for (let i = 0; i < intervals.length; i++) {
+              const interval = intervals[i];
+              await prisma.activityInterval.create({
+                data: {
+                  activityId: dbActivity.id,
+                  intervalType: interval.splitType,
+                  intervalOrder: i,
+                  distance: interval.distance ?? 0,
+                  duration: interval.duration ?? 0,
+                  noOfSplits: interval.noOfSplits ?? 1,
+                  averageSpeed: interval.averageSpeed ?? null,
+                  averageHR: interval.averageHR ? Math.round(interval.averageHR) : null,
+                  maxHR: interval.maxHR ? Math.round(interval.maxHR) : null,
+                  averageCadence: interval.averageRunCadence ?? null,
+                  averageGCT: interval.avgGroundContactTime ?? null,
+                  averageStrideLength: interval.avgStrideLength ?? null,
+                  elevationGain: interval.elevationGain ?? null,
+                  elevationLoss: interval.elevationLoss ?? null,
+                },
+              });
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to sync intervals for activity ${raw.activityId}:`, e);
         }
       } catch (e) {
         console.error(`Failed to sync splits for activity ${raw.activityId}:`, e);
@@ -569,8 +607,11 @@ export async function resyncAllSplits() {
 
   for (const activity of activities) {
     try {
-      // Supprimer les anciens splits
+      // Supprimer les anciens splits et intervalles
       await prisma.activitySplit.deleteMany({
+        where: { activityId: activity.id },
+      });
+      await prisma.activityInterval.deleteMany({
         where: { activityId: activity.id },
       });
 
@@ -609,7 +650,6 @@ export async function resyncAllSplits() {
               maxCadence: lap.maxRunCadence ?? null,
               elevationGain: lap.elevationGain ?? null,
               elevationLoss: lap.elevationLoss ?? null,
-              // Running dynamics - convertir de cm en mm pour la foulée
               averageGCT: lap.groundContactTime ?? null,
               groundContactBalance: lap.groundContactBalance ?? null,
               averageStrideLength: lap.strideLength ?? null,
@@ -632,6 +672,43 @@ export async function resyncAllSplits() {
         }
 
         synced++;
+      }
+
+      // Sync intervalles structurés (splitSummaries) depuis getActivity
+      try {
+        const activityDetail = await client.getActivity({ activityId: Number(activity.garminActivityId) });
+        const splitSummaries = activityDetail?.splitSummaries;
+
+        if (Array.isArray(splitSummaries) && splitSummaries.length > 0) {
+          const relevantTypes = ["INTERVAL_WARMUP", "INTERVAL_ACTIVE", "INTERVAL_RECOVERY", "INTERVAL_COOLDOWN"];
+          const intervals = splitSummaries.filter(
+            (s: GarminRaw) => relevantTypes.includes(s.splitType)
+          );
+
+          for (let i = 0; i < intervals.length; i++) {
+            const interval = intervals[i];
+            await prisma.activityInterval.create({
+              data: {
+                activityId: activity.id,
+                intervalType: interval.splitType,
+                intervalOrder: i,
+                distance: interval.distance ?? 0,
+                duration: interval.duration ?? 0,
+                noOfSplits: interval.noOfSplits ?? 1,
+                averageSpeed: interval.averageSpeed ?? null,
+                averageHR: interval.averageHR ? Math.round(interval.averageHR) : null,
+                maxHR: interval.maxHR ? Math.round(interval.maxHR) : null,
+                averageCadence: interval.averageRunCadence ?? null,
+                averageGCT: interval.avgGroundContactTime ?? null,
+                averageStrideLength: interval.avgStrideLength ?? null,
+                elevationGain: interval.elevationGain ?? null,
+                elevationLoss: interval.elevationLoss ?? null,
+              },
+            });
+          }
+        }
+      } catch (e) {
+        console.error(`Failed to sync intervals for activity ${activity.garminActivityId}:`, e);
       }
 
       // Délai de 200ms entre chaque activité pour éviter le rate limiting

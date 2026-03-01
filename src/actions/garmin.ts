@@ -138,6 +138,7 @@ export async function fetchActivityDetail(garminActivityId: number) {
     where: { garminActivityId: BigInt(garminActivityId) },
     include: {
       splits: { orderBy: { splitNumber: "asc" } },
+      intervals: { orderBy: { intervalOrder: "asc" } },
       analysis: true,
     },
   });

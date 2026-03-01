@@ -162,6 +162,7 @@ model Activity {
   updatedAt               DateTime   @updatedAt
 
   splits                  ActivitySplit[]
+  intervals               ActivityInterval[]
   analysis                ActivityAnalysis?
   linkedSession           TrainingSession?
 
@@ -211,6 +212,33 @@ model ActivityAnalysis {
   model       String   @default("gemini-3-flash-preview")
   createdAt   DateTime @default(now())
 
+  @@index([activityId])
+}
+
+model ActivityInterval {
+  id              String   @id @default(cuid())
+  activityId      String
+  activity        Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  intervalType    String   // INTERVAL_WARMUP, INTERVAL_ACTIVE, INTERVAL_RECOVERY, INTERVAL_COOLDOWN, RWD_RUN, RWD_WALK
+  intervalOrder   Int      // Ordre dans la séance (0 = premier intervalle)
+  distance        Float    // Distance totale de cet intervalle (m)
+  duration        Float    // Durée totale (s)
+  noOfSplits      Int      // Nombre de répétitions de ce type
+
+  // Moyennes
+  averageSpeed    Float?   // m/s
+  averageHR       Int?
+  maxHR           Int?
+  averageCadence  Float?
+  averageGCT      Float?   // Ground Contact Time (ms)
+  averageStrideLength Float?
+
+  // Élévation
+  elevationGain   Float?
+  elevationLoss   Float?
+
+  @@unique([activityId, intervalOrder])
   @@index([activityId])
 }
 

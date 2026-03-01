@@ -21,24 +21,38 @@ Fournis :
 1. **Résumé** : Type de séance et performance globale
 2. **Analyse de l'allure** :
    - Régularité (score evenPace, variabilité)
-   - Stratégie (negative split si ratio < 1, positive split si > 1)
+   - Stratégie (negative split si ratio > 1 = 2ème moitié plus rapide, positive split si < 1)
    - Km le plus rapide/lent et leur position dans la course
    - Évolution de l'allure (paceDecay : > 0 = ralentissement, < 0 = accélération)
 3. **Analyse des splits détaillée** : Régularité par km, dynamique de course par segment
-4. **Fréquence cardiaque** : Zones d'effort, récupération, dérive cardiaque
-5. **Dynamique de course** : Cadence, temps de contact au sol, oscillation verticale, longueur de foulée
-6. **Puissance** : Running Power moyenne/max/normalisée (si disponible), efficacité énergétique
-7. **Stamina** : Analyse du stamina restant en fin de séance et potentiel (si disponible)
-8. **Dépense énergétique** : Calories brûlées, rapport effort/distance
-9. **Training Effect** : Interprétation de l'effet d'entraînement aérobie/anaérobie
-10. **Points à améliorer** : Recommandations spécifiques basées sur les données d'allure et de dynamique
-11. **Comparaison** : Positionnement par rapport aux séances récentes si contexte fourni
+4. **Analyse fractionné** (si intervalles présents) :
+   - Structure de la séance (échauffement, fractions, récupérations, retour au calme)
+   - Allures des fractions vs objectif
+   - Régularité entre les répétitions
+   - Qualité de la récupération (allure, FC)
+   - Ratio travail/récup
+5. **Fréquence cardiaque** : Zones d'effort, récupération, dérive cardiaque
+6. **Dynamique de course** : Cadence, temps de contact au sol, oscillation verticale, longueur de foulée
+7. **Puissance** : Running Power moyenne/max/normalisée (si disponible), efficacité énergétique
+8. **Stamina** : Analyse du stamina restant en fin de séance et potentiel (si disponible)
+9. **Dépense énergétique** : Calories brûlées, rapport effort/distance
+10. **Training Effect** : Interprétation de l'effet d'entraînement aérobie/anaérobie
+11. **Points à améliorer** : Recommandations spécifiques basées sur les données d'allure et de dynamique
+12. **Comparaison** : Positionnement par rapport aux séances récentes si contexte fourni
 
 IMPORTANT pour l'analyse de l'allure :
-- negativeSplitRatio < 1 = negative split (2ème moitié plus rapide, excellent)
-- negativeSplitRatio > 1 = positive split (2ème moitié plus lente)
+- negativeSplitRatio > 1 = negative split (2ème moitié plus rapide, excellent)
+- negativeSplitRatio < 1 = positive split (2ème moitié plus lente)
 - evenPaceScore proche de 100 = allure très régulière
 - paceDecay > 0 = ralentissement en fin de course
+
+IMPORTANT pour les fractionnés :
+- INTERVAL_WARMUP = échauffement
+- INTERVAL_ACTIVE = fractions (répétitions rapides)
+- INTERVAL_RECOVERY = récupération entre fractions
+- INTERVAL_COOLDOWN = retour au calme
+- Analyse la régularité des allures entre les répétitions actives
+- Compare l'allure des fractions à l'allure moyenne de la séance
 
 Sois précis, utilise les chiffres, et donne des conseils actionnables.
 Réponds en français.`;
@@ -239,6 +253,7 @@ export async function analyzeActivity(
       where: { garminActivityId: BigInt(garminActivityId) },
       include: {
         splits: { orderBy: { splitNumber: "asc" } },
+        intervals: { orderBy: { intervalOrder: "asc" } },
         analysis: true,
         user: true,
       },
@@ -310,6 +325,18 @@ export async function analyzeActivity(
         verticalOscillation: s.averageVerticalOscillation,
         power: s.averagePower,
       })),
+      // Intervalles structurés (fractionné)
+      intervals: activity.intervals.length > 0 ? activity.intervals.map((i) => ({
+        type: i.intervalType,
+        order: i.intervalOrder,
+        distance: i.distance,
+        duration: i.duration,
+        repetitions: i.noOfSplits,
+        speed: i.averageSpeed,
+        hr: i.averageHR,
+        maxHR: i.maxHR,
+        cadence: i.averageCadence,
+      })) : null,
     };
 
     const context = recentActivities.map((a) => ({
