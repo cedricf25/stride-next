@@ -14,8 +14,9 @@ model User {
   name            String?
   image           String?
 
-  // Stride-specific fields
-  garminUsername   String?  @unique
+  // Stride-specific fields (Garmin Connect credentials)
+  garminUsername   String?
+  garminPassword   String?
   displayName     String?
   vo2max          Float?
   weight          Float?

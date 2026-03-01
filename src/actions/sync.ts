@@ -2,16 +2,14 @@
 
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { prisma } from "@/lib/prisma";
-import { getGarminClient } from "@/lib/garmin-client";
-import { getAuthenticatedUser } from "@/lib/user";
+import { getAuthenticatedUser, getAuthenticatedGarminClient } from "@/lib/user";
 import { matchActivitiesToPlans } from "./training";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GarminRaw = any;
 
 export async function syncActivities(count: number = 64) {
-  const user = await getAuthenticatedUser();
-  const client = await getGarminClient();
+  const { user, client } = await getAuthenticatedGarminClient();
 
   const rawActivities = (await client.getActivities(0, count)) as GarminRaw[];
 
@@ -157,8 +155,7 @@ export async function syncActivities(count: number = 64) {
 }
 
 export async function syncSleepData(days: number = 14) {
-  const user = await getAuthenticatedUser();
-  const client = await getGarminClient();
+  const { user, client } = await getAuthenticatedGarminClient();
 
   let synced = 0;
   const today = new Date();
@@ -247,8 +244,7 @@ export async function syncSleepData(days: number = 14) {
 }
 
 export async function syncHealthMetrics(days: number = 14) {
-  const user = await getAuthenticatedUser();
-  const client = await getGarminClient();
+  const { user, client } = await getAuthenticatedGarminClient();
 
   // Get user displayName for stress endpoint
   let displayName: string | null = null;
@@ -377,8 +373,7 @@ export async function syncHealthMetrics(days: number = 14) {
 }
 
 export async function syncUserProfile() {
-  const user = await getAuthenticatedUser();
-  const client = await getGarminClient();
+  const { user, client } = await getAuthenticatedGarminClient();
 
   try {
     const settings = (await client.getUserSettings()) as GarminRaw;

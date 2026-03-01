@@ -1,8 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getGarminClient } from "@/lib/garmin-client";
-import { getAuthenticatedUser } from "@/lib/user";
+import { getAuthenticatedGarminClient } from "@/lib/user";
 
 // Mapping des types de séances vers les noms courts pour Garmin
 const sessionTypeShortNames: Record<string, string> = {
@@ -371,10 +370,7 @@ export async function exportSessionToGarmin(sessionId: string): Promise<{
   error?: string;
 }> {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) {
-      return { success: false, error: "Non authentifié" };
-    }
+    const { user, client } = await getAuthenticatedGarminClient();
 
     const session = await prisma.trainingSession.findUnique({
       where: { id: sessionId },
@@ -399,8 +395,6 @@ export async function exportSessionToGarmin(sessionId: string): Promise<{
       return { success: false, error: "Impossible d'exporter un jour de repos" };
     }
 
-    const client = await getGarminClient();
-
     // Construire le workout structuré
     const workout = buildStructuredWorkout({
       title: session.title,
@@ -420,6 +414,9 @@ export async function exportSessionToGarmin(sessionId: string): Promise<{
       workoutId: result.workoutId?.toString(),
     };
   } catch (error) {
+    if (error instanceof Error && error.message === "GARMIN_NOT_CONFIGURED") {
+      return { success: false, error: "Veuillez configurer vos identifiants Garmin dans les Paramètres" };
+    }
     console.error("Erreur export Garmin:", error);
     return {
       success: false,
