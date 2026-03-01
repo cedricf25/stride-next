@@ -8,6 +8,55 @@ import { matchActivitiesToPlans } from "./training";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GarminRaw = any;
 
+// Calcule les statistiques d'allure à partir des splits
+function calculatePaceStats(splits: { averageSpeed: number | null; splitNumber: number; distance?: number }[]) {
+  // Filtrer les splits valides : vitesse > 0 ET distance >= 500m (ignorer les splits partiels)
+  const validSplits = splits.filter(s =>
+    s.averageSpeed && s.averageSpeed > 0 &&
+    (s.distance === undefined || s.distance >= 500)
+  );
+  if (validSplits.length < 2) return null;
+
+  const speeds = validSplits.map(s => s.averageSpeed!);
+  const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+
+  // Variabilité (écart-type en %)
+  const variance = speeds.reduce((sum, s) => sum + Math.pow(s - avgSpeed, 2), 0) / speeds.length;
+  const stdDev = Math.sqrt(variance);
+  const paceVariability = (stdDev / avgSpeed) * 100;
+
+  // Negative split ratio (2ème moitié / 1ère moitié)
+  const mid = Math.floor(validSplits.length / 2);
+  const firstHalfAvg = speeds.slice(0, mid).reduce((a, b) => a + b, 0) / mid;
+  const secondHalfAvg = speeds.slice(mid).reduce((a, b) => a + b, 0) / (speeds.length - mid);
+  const negativeSplitRatio = secondHalfAvg / firstHalfAvg;
+
+  // Km le plus rapide et le plus lent
+  const maxSpeed = Math.max(...speeds);
+  const minSpeed = Math.min(...speeds);
+  const fastestSplitKm = validSplits.find(s => s.averageSpeed === maxSpeed)?.splitNumber ?? null;
+  const slowestSplitKm = validSplits.find(s => s.averageSpeed === minSpeed)?.splitNumber ?? null;
+
+  // Pace decay (ralentissement entre le 1er et dernier km)
+  const firstKmSpeed = speeds[0];
+  const lastKmSpeed = speeds[speeds.length - 1];
+  const paceDecay = ((firstKmSpeed - lastKmSpeed) / firstKmSpeed) * 100;
+
+  // Even pace score (0-100, basé sur la variabilité)
+  // Score parfait = 100 si variabilité = 0, score de 0 si variabilité >= 25%
+  // Échelle : 5% → 80, 10% → 60, 15% → 40, 20% → 20, 25% → 0
+  const evenPaceScore = Math.max(0, Math.min(100, Math.round(100 - paceVariability * 4)));
+
+  return {
+    paceVariability: Math.round(paceVariability * 100) / 100,
+    negativeSplitRatio: Math.round(negativeSplitRatio * 1000) / 1000,
+    fastestSplitKm,
+    slowestSplitKm,
+    paceDecay: Math.round(paceDecay * 100) / 100,
+    evenPaceScore,
+  };
+}
+
 export async function syncActivities(count: number = 64) {
   const { user, client } = await getAuthenticatedGarminClient();
 
@@ -102,45 +151,73 @@ export async function syncActivities(count: number = 64) {
       },
     });
 
-    // Sync splits pour les nouvelles activités
+    // Sync splits pour les nouvelles activités via l'endpoint /splits (lapDTOs)
     if (!existing) {
       try {
-        const detail = await client.getActivity({ activityId: raw.activityId });
-        const splits = (detail as GarminRaw)?.splitSummaries;
-        if (Array.isArray(splits)) {
-          for (const split of splits) {
-            if (split.splitType === "RUN_LAP" || split.splitType === "KM") {
-              await prisma.activitySplit.upsert({
-                where: {
-                  activityId_splitNumber_splitType: {
-                    activityId: (
-                      await prisma.activity.findUnique({
-                        where: { garminActivityId: activityId },
-                      })
-                    )!.id,
-                    splitNumber: split.numSplits ?? split.splitNumber ?? 0,
-                    splitType: split.splitType === "KM" ? "km" : "lap",
-                  },
+        const splitsData = await client.get<GarminRaw>(
+          `https://connectapi.garmin.com/activity-service/activity/${raw.activityId}/splits`
+        );
+        const laps = splitsData?.lapDTOs;
+
+        if (Array.isArray(laps) && laps.length > 0) {
+          const dbActivity = await prisma.activity.findUnique({
+            where: { garminActivityId: activityId },
+          });
+          if (!dbActivity) continue;
+
+          const kmSplits: { averageSpeed: number | null; splitNumber: number; distance: number }[] = [];
+
+          for (const lap of laps) {
+            const splitNumber = lap.lapIndex ?? 1;
+            const distance = lap.distance ?? 0;
+
+            kmSplits.push({
+              averageSpeed: lap.averageSpeed ?? null,
+              splitNumber,
+              distance,
+            });
+
+            await prisma.activitySplit.upsert({
+              where: {
+                activityId_splitNumber_splitType: {
+                  activityId: dbActivity.id,
+                  splitNumber,
+                  splitType: "km",
                 },
-                update: {},
-                create: {
-                  activityId: (
-                    await prisma.activity.findUnique({
-                      where: { garminActivityId: activityId },
-                    })
-                  )!.id,
-                  splitNumber: split.numSplits ?? split.splitNumber ?? 0,
-                  splitType: split.splitType === "KM" ? "km" : "lap",
-                  distance: split.distance ?? 0,
-                  duration: split.duration ?? 0,
-                  averageSpeed: split.averageSpeed ?? null,
-                  averageHR: split.averageHR ? Math.round(split.averageHR) : null,
-                  maxHR: split.maxHR ? Math.round(split.maxHR) : null,
-                  averageCadence: split.averageRunningCadenceInStepsPerMinute ?? null,
-                  elevationGain: split.elevationGain ?? null,
-                  elevationLoss: split.elevationLoss ?? null,
-                  averageGCT: split.avgGroundContactTime ?? null,
-                },
+              },
+              update: {},
+              create: {
+                activityId: dbActivity.id,
+                splitNumber,
+                splitType: "km",
+                distance: lap.distance ?? 0,
+                duration: lap.duration ?? 0,
+                movingDuration: lap.movingDuration ?? null,
+                averageSpeed: lap.averageSpeed ?? null,
+                maxSpeed: lap.maxSpeed ?? null,
+                averageHR: lap.averageHR ? Math.round(lap.averageHR) : null,
+                maxHR: lap.maxHR ? Math.round(lap.maxHR) : null,
+                averageCadence: lap.averageRunCadence ?? null,
+                maxCadence: lap.maxRunCadence ?? null,
+                elevationGain: lap.elevationGain ?? null,
+                elevationLoss: lap.elevationLoss ?? null,
+                averageGCT: lap.groundContactTime ?? null,
+                groundContactBalance: lap.groundContactBalance ?? null,
+                averageStrideLength: lap.strideLength ?? null,
+                averageVerticalOscillation: lap.verticalOscillation ?? null,
+                averageVerticalRatio: lap.verticalRatio ?? null,
+                averagePower: lap.averagePower ?? null,
+              },
+            });
+          }
+
+          // Calculer et stocker les statistiques d'allure
+          if (kmSplits.length >= 2) {
+            const paceStats = calculatePaceStats(kmSplits);
+            if (paceStats) {
+              await prisma.activity.update({
+                where: { id: dbActivity.id },
+                data: paceStats,
               });
             }
           }
@@ -471,4 +548,101 @@ export async function syncAll() {
   }
 
   return results;
+}
+
+// Re-synchronise les splits de toutes les activités existantes avec les données enrichies
+export async function resyncAllSplits() {
+  const { user, client } = await getAuthenticatedGarminClient();
+
+  // Triées par date décroissante (les plus récentes d'abord)
+  const activities = await prisma.activity.findMany({
+    where: { userId: user.id },
+    select: { id: true, garminActivityId: true },
+    orderBy: { startTimeLocal: "desc" },
+  });
+
+  let synced = 0;
+  let errors = 0;
+
+  // Helper pour attendre entre les requêtes (éviter rate limiting)
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  for (const activity of activities) {
+    try {
+      // Supprimer les anciens splits
+      await prisma.activitySplit.deleteMany({
+        where: { activityId: activity.id },
+      });
+
+      // Récupérer les splits détaillés depuis l'endpoint /splits (lapDTOs)
+      const splitsData = await client.get<GarminRaw>(
+        `https://connectapi.garmin.com/activity-service/activity/${activity.garminActivityId}/splits`
+      );
+      const laps = splitsData?.lapDTOs;
+
+      if (Array.isArray(laps) && laps.length > 0) {
+        const kmSplits: { averageSpeed: number | null; splitNumber: number; distance: number }[] = [];
+
+        for (const lap of laps) {
+          const splitNumber = lap.lapIndex ?? 1;
+          const distance = lap.distance ?? 0;
+
+          kmSplits.push({
+            averageSpeed: lap.averageSpeed ?? null,
+            splitNumber,
+            distance,
+          });
+
+          await prisma.activitySplit.create({
+            data: {
+              activityId: activity.id,
+              splitNumber,
+              splitType: "km",
+              distance: lap.distance ?? 0,
+              duration: lap.duration ?? 0,
+              movingDuration: lap.movingDuration ?? null,
+              averageSpeed: lap.averageSpeed ?? null,
+              maxSpeed: lap.maxSpeed ?? null,
+              averageHR: lap.averageHR ? Math.round(lap.averageHR) : null,
+              maxHR: lap.maxHR ? Math.round(lap.maxHR) : null,
+              averageCadence: lap.averageRunCadence ?? null,
+              maxCadence: lap.maxRunCadence ?? null,
+              elevationGain: lap.elevationGain ?? null,
+              elevationLoss: lap.elevationLoss ?? null,
+              // Running dynamics - convertir de cm en mm pour la foulée
+              averageGCT: lap.groundContactTime ?? null,
+              groundContactBalance: lap.groundContactBalance ?? null,
+              averageStrideLength: lap.strideLength ?? null,
+              averageVerticalOscillation: lap.verticalOscillation ?? null,
+              averageVerticalRatio: lap.verticalRatio ?? null,
+              averagePower: lap.averagePower ?? null,
+            },
+          });
+        }
+
+        // Calculer et stocker les statistiques d'allure
+        if (kmSplits.length >= 2) {
+          const paceStats = calculatePaceStats(kmSplits);
+          if (paceStats) {
+            await prisma.activity.update({
+              where: { id: activity.id },
+              data: paceStats,
+            });
+          }
+        }
+
+        synced++;
+      }
+
+      // Délai de 200ms entre chaque activité pour éviter le rate limiting
+      await delay(200);
+    } catch (e) {
+      console.error(`Failed to resync splits for activity ${activity.garminActivityId}:`, e);
+      errors++;
+      // En cas d'erreur, on attend un peu plus longtemps
+      await delay(500);
+    }
+  }
+
+  return { synced, errors, total: activities.length };
 }

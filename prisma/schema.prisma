@@ -147,6 +147,14 @@ model Activity {
   startLongitude          Float?
   locationName            String?
 
+  // Statistiques d'allure calculées (pour analyse IA)
+  paceVariability         Float?     // Écart-type de l'allure entre splits (%)
+  negativeSplitRatio      Float?     // Ratio 2ème moitié / 1ère moitié (< 1 = negative split)
+  fastestSplitKm          Int?       // Numéro du km le plus rapide
+  slowestSplitKm          Int?       // Numéro du km le plus lent
+  paceDecay               Float?     // % de ralentissement entre début et fin
+  evenPaceScore           Int?       // Score de régularité 0-100 (100 = parfait)
+
   // Metadata
   description             String?    @db.Text
 
@@ -170,13 +178,25 @@ model ActivitySplit {
   splitType       String   @default("km") // "km" ou "lap"
   distance        Float
   duration        Float
+  movingDuration  Float?   // Durée en mouvement (sans pauses)
   averageSpeed    Float?
+  maxSpeed        Float?   // Vitesse max sur ce split
   averageHR       Int?
   maxHR           Int?
   averageCadence  Float?
+  maxCadence      Float?   // Cadence max
   elevationGain   Float?
   elevationLoss   Float?
-  averageGCT      Float?
+
+  // Dynamique de course enrichie
+  averageGCT              Float?   // Ground Contact Time (ms)
+  groundContactBalance    Float?   // Balance gauche/droite (%)
+  averageStrideLength     Float?   // Longueur de foulée (m)
+  averageVerticalOscillation Float? // Oscillation verticale (cm)
+  averageVerticalRatio    Float?   // Ratio vertical (%)
+
+  // Puissance (si disponible)
+  averagePower    Float?   // Watts moyen sur ce split
 
   @@unique([activityId, splitNumber, splitType])
   @@index([activityId])

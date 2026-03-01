@@ -19,15 +19,26 @@ const ACTIVITY_SYSTEM_PROMPT = `Tu es un coach expert en course à pied. Analyse
 
 Fournis :
 1. **Résumé** : Type de séance et performance globale
-2. **Analyse des splits** : Régularité, stratégie d'allure (negative split, etc.)
-3. **Fréquence cardiaque** : Zones d'effort, récupération, dérive cardiaque
-4. **Dynamique de course** : Cadence, temps de contact au sol, oscillation verticale si disponible
-5. **Puissance** : Running Power moyenne/max/normalisée (si disponible), efficacité énergétique
-6. **Stamina** : Analyse du stamina restant en fin de séance et potentiel (si disponible)
-7. **Dépense énergétique** : Calories brûlées, rapport effort/distance
-8. **Training Effect** : Interprétation de l'effet d'entraînement aérobie/anaérobie
-9. **Points à améliorer** : Recommandations spécifiques basées sur les données
-10. **Comparaison** : Positionnement par rapport aux séances récentes si contexte fourni
+2. **Analyse de l'allure** :
+   - Régularité (score evenPace, variabilité)
+   - Stratégie (negative split si ratio < 1, positive split si > 1)
+   - Km le plus rapide/lent et leur position dans la course
+   - Évolution de l'allure (paceDecay : > 0 = ralentissement, < 0 = accélération)
+3. **Analyse des splits détaillée** : Régularité par km, dynamique de course par segment
+4. **Fréquence cardiaque** : Zones d'effort, récupération, dérive cardiaque
+5. **Dynamique de course** : Cadence, temps de contact au sol, oscillation verticale, longueur de foulée
+6. **Puissance** : Running Power moyenne/max/normalisée (si disponible), efficacité énergétique
+7. **Stamina** : Analyse du stamina restant en fin de séance et potentiel (si disponible)
+8. **Dépense énergétique** : Calories brûlées, rapport effort/distance
+9. **Training Effect** : Interprétation de l'effet d'entraînement aérobie/anaérobie
+10. **Points à améliorer** : Recommandations spécifiques basées sur les données d'allure et de dynamique
+11. **Comparaison** : Positionnement par rapport aux séances récentes si contexte fourni
+
+IMPORTANT pour l'analyse de l'allure :
+- negativeSplitRatio < 1 = negative split (2ème moitié plus rapide, excellent)
+- negativeSplitRatio > 1 = positive split (2ème moitié plus lente)
+- evenPaceScore proche de 100 = allure très régulière
+- paceDecay > 0 = ralentissement en fin de course
 
 Sois précis, utilise les chiffres, et donne des conseils actionnables.
 Réponds en français.`;
@@ -277,13 +288,27 @@ export async function analyzeActivity(
       anaerobicTrainingEffect: activity.anaerobicTrainingEffect,
       trainingStressScore: activity.trainingStressScore,
       vo2max: activity.vo2max,
+      // Statistiques d'allure calculées
+      paceStats: {
+        paceVariability: activity.paceVariability,
+        negativeSplitRatio: activity.negativeSplitRatio,
+        fastestSplitKm: activity.fastestSplitKm,
+        slowestSplitKm: activity.slowestSplitKm,
+        paceDecay: activity.paceDecay,
+        evenPaceScore: activity.evenPaceScore,
+      },
       splits: activity.splits.map((s) => ({
         km: s.splitNumber,
         speed: s.averageSpeed,
+        maxSpeed: s.maxSpeed,
         hr: s.averageHR,
+        maxHR: s.maxHR,
         cadence: s.averageCadence,
+        strideLength: s.averageStrideLength,
         elevGain: s.elevationGain,
         gct: s.averageGCT,
+        verticalOscillation: s.averageVerticalOscillation,
+        power: s.averagePower,
       })),
     };
 

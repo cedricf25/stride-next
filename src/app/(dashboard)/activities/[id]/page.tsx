@@ -4,6 +4,7 @@ import ActivityDetailHeader from "@/components/activity/ActivityDetailHeader";
 import SplitTable from "@/components/activity/SplitTable";
 import RunningDynamics from "@/components/activity/RunningDynamics";
 import TrainingEffectCard from "@/components/activity/TrainingEffectCard";
+import PaceAnalysisCard from "@/components/activity/PaceAnalysisCard";
 import ActivityAiAnalysis from "@/components/activity/ActivityAiAnalysis";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,11 @@ export default async function ActivityDetailPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-8">
       <ActivityDetailHeader activity={activity} />
+
+      {/* Analyse d'allure */}
+      <div className="mt-6 md:mt-8">
+        <PaceAnalysisCard activity={activity} />
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 md:mt-8 md:gap-6 lg:grid-cols-2">
         <TrainingEffectCard activity={activity} />

@@ -7,11 +7,15 @@ interface Split {
   distance: number;
   duration: number;
   averageSpeed: number | null;
+  maxSpeed: number | null;
   averageHR: number | null;
   maxHR: number | null;
   averageCadence: number | null;
   elevationGain: number | null;
   averageGCT: number | null;
+  averageStrideLength: number | null;
+  averageVerticalOscillation: number | null;
+  averagePower: number | null;
 }
 
 interface Props {
@@ -85,8 +89,10 @@ export default function SplitTable({ splits }: Props) {
               <th className="px-4 py-3">Allure</th>
               <th className="px-4 py-3">FC</th>
               <th className="px-4 py-3">Cadence</th>
-              <th className="px-4 py-3">D+</th>
+              <th className="px-4 py-3">Foulée</th>
               <th className="px-4 py-3">GCT</th>
+              <th className="px-4 py-3">D+</th>
+              {splits.some(s => s.averagePower) && <th className="px-4 py-3">Power</th>}
             </tr>
           </thead>
           <tbody>
@@ -117,11 +123,19 @@ export default function SplitTable({ splits }: Props) {
                     {split.averageCadence ? `${Math.round(split.averageCadence)} spm` : "—"}
                   </td>
                   <td className="px-4 py-2.5 text-[var(--text-secondary)]">
-                    {split.elevationGain != null ? `${Math.round(split.elevationGain)}m` : "—"}
+                    {split.averageStrideLength ? `${(split.averageStrideLength / 100).toFixed(2)}m` : "—"}
                   </td>
                   <td className="px-4 py-2.5 text-[var(--text-secondary)]">
                     {split.averageGCT ? `${Math.round(split.averageGCT)} ms` : "—"}
                   </td>
+                  <td className="px-4 py-2.5 text-[var(--text-secondary)]">
+                    {split.elevationGain != null ? `${Math.round(split.elevationGain)}m` : "—"}
+                  </td>
+                  {splits.some(s => s.averagePower) && (
+                    <td className="px-4 py-2.5 text-[var(--text-secondary)]">
+                      {split.averagePower ? `${Math.round(split.averagePower)}W` : "—"}
+                    </td>
+                  )}
                 </tr>
               );
             })}

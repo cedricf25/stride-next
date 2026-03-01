@@ -1,7 +1,8 @@
-import { Palette, Watch } from "lucide-react";
+import { Palette, Watch, RefreshCw } from "lucide-react";
 import { PageContainer, Card, SectionHeader } from "@/components/shared";
 import ThemeToggle from "@/components/settings/ThemeToggle";
 import GarminSettings from "@/components/settings/GarminSettings";
+import ResyncSplitsButton from "@/components/settings/ResyncSplitsButton";
 import { getGarminConnectionStatus } from "@/actions/settings";
 
 export default async function SettingsPage() {
@@ -24,6 +25,15 @@ export default async function SettingsPage() {
             initialUsername={garminStatus.username}
             isConfigured={garminStatus.isConfigured}
           />
+        </Card>
+
+        <Card>
+          <SectionHeader
+            icon={<RefreshCw className="h-5 w-5 text-green-600" />}
+            title="Données d'activités"
+            className="mb-4"
+          />
+          <ResyncSplitsButton />
         </Card>
 
         <Card>
