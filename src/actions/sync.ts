@@ -233,7 +233,7 @@ export async function syncActivities(count: number = 64) {
             const relevantTypes = ["INTERVAL_WARMUP", "INTERVAL_ACTIVE", "INTERVAL_RECOVERY", "INTERVAL_COOLDOWN"];
             const intervals = splitSummaries.filter(
               (s: GarminRaw) => relevantTypes.includes(s.splitType)
-            );
+            ) as GarminRaw[];
 
             for (let i = 0; i < intervals.length; i++) {
               const interval = intervals[i];
