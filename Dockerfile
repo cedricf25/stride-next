@@ -7,10 +7,6 @@ WORKDIR /app
 # Dummy DATABASE_URL for prisma generate & next build (not used at runtime)
 ENV DATABASE_URL="mysql://user:pass@localhost:3306/db"
 
-# Variables needed at build time for Next.js
-ARG NEXT_PUBLIC_BETTER_AUTH_URL
-ENV NEXT_PUBLIC_BETTER_AUTH_URL=${NEXT_PUBLIC_BETTER_AUTH_URL}
-
 # Install ALL dependencies (including devDependencies for build)
 COPY package*.json ./
 RUN npm ci
