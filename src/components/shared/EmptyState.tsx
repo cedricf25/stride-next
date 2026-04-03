@@ -7,6 +7,7 @@ interface EmptyStateProps {
   icon?: React.ReactNode;
   variant?: "card" | "dashed";
   className?: string;
+  children?: React.ReactNode;
 }
 
 export default function EmptyState({
@@ -16,6 +17,7 @@ export default function EmptyState({
   icon,
   variant = "card",
   className,
+  children,
 }: EmptyStateProps) {
   if (variant === "dashed") {
     return (
@@ -31,6 +33,7 @@ export default function EmptyState({
         {subtitle && (
           <p className="mt-1 text-sm text-[var(--text-muted)]">{subtitle}</p>
         )}
+        {children}
       </div>
     );
   }
@@ -41,6 +44,7 @@ export default function EmptyState({
         <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
       )}
       <p className="text-sm text-[var(--text-tertiary)]">{message}</p>
+      {children}
     </Card>
   );
 }
