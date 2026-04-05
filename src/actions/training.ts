@@ -76,6 +76,7 @@ async function createPlanSnapshot(
       theme: w.theme,
       totalVolume: w.totalVolume,
       sessions: w.sessions.map((s) => ({
+        sortOrder: s.sortOrder,
         dayOfWeek: s.dayOfWeek,
         sessionType: s.sessionType,
         title: s.title,
@@ -732,10 +733,12 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
       const isPastWeek = week.weekNumber <= pastWeeks;
 
       if (Array.isArray(week.sessions)) {
+        let sessionIndex = 0;
         for (const session of week.sessions) {
           await prisma.trainingSession.create({
             data: {
               weekId: dbWeek.id,
+              sortOrder: sessionIndex++,
               dayOfWeek: session.dayOfWeek ?? "lundi",
               sessionType: session.sessionType ?? "easy",
               title: session.title ?? "Séance",
@@ -1754,6 +1757,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
       const mergedSessions: MergedSession[] = [];
 
       const generatedDays = new Set<string>();
+      let sessionIndex = 0;
 
       if (Array.isArray(week.sessions)) {
         for (const genSession of week.sessions) {
@@ -1764,6 +1768,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
           await prisma.trainingSession.create({
             data: {
               weekId: dbWeek.id,
+              sortOrder: sessionIndex++,
               dayOfWeek: session?.dayOfWeek ?? "lundi",
               sessionType: session?.sessionType ?? "easy",
               title: session?.title ?? "Séance",
@@ -1820,6 +1825,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
             await prisma.trainingSession.create({
               data: {
                 weekId: dbWeek.id,
+                sortOrder: sessionIndex++,
                 dayOfWeek: existingSession.dayOfWeek,
                 sessionType: existingSession.sessionType,
                 title: existingSession.title,
@@ -1887,6 +1893,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
     theme: w.theme,
     totalVolume: w.totalVolume,
     sessions: w.sessions.map((s) => ({
+      sortOrder: s.sortOrder,
       dayOfWeek: s.dayOfWeek,
       sessionType: s.sessionType,
       title: s.title,
@@ -2078,10 +2085,12 @@ export async function restorePlanVersion(planId: string, versionNumber: number) 
 
     const isPastWeek = weekData.weekNumber < currentWeekNumber;
 
+    let sessionIndex = 0;
     for (const sessionData of weekData.sessions) {
       await prisma.trainingSession.create({
         data: {
           weekId: dbWeek.id,
+          sortOrder: sessionData.sortOrder ?? sessionIndex++,
           dayOfWeek: sessionData.dayOfWeek,
           sessionType: sessionData.sessionType,
           title: sessionData.title,
@@ -2252,10 +2261,12 @@ export async function setDefaultVersion(planId: string, versionNumber: number) {
 
     const isPastWeek = weekData.weekNumber < currentWeekNumber;
 
+    let sessionIndex = 0;
     for (const sessionData of weekData.sessions) {
       await prisma.trainingSession.create({
         data: {
           weekId: dbWeek.id,
+          sortOrder: sessionData.sortOrder ?? sessionIndex++,
           dayOfWeek: sessionData.dayOfWeek,
           sessionType: sessionData.sessionType,
           title: sessionData.title,
@@ -2310,5 +2321,24 @@ export async function setDefaultVersion(planId: string, versionNumber: number) {
   });
 
   return { success: true };
+}
+
+/**
+ * Réordonne les séances d'une semaine selon l'ordre fourni.
+ * Réassigne les jours de la semaine pour correspondre aux positions.
+ * @param sessionIds - IDs des séances dans le nouvel ordre souhaité
+ * @param dayMapping - mapping sessionId → nouveau dayOfWeek
+ */
+export async function reorderSessions(sessionIds: string[], dayMapping: Record<string, string>) {
+  const updates = sessionIds.map((id, index) =>
+    prisma.trainingSession.update({
+      where: { id },
+      data: {
+        sortOrder: index,
+        dayOfWeek: dayMapping[id],
+      },
+    })
+  );
+  await Promise.all(updates);
 }
 

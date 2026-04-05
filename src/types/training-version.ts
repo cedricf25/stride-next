@@ -1,4 +1,5 @@
 export interface SessionSnapshot {
+  sortOrder?: number;
   dayOfWeek: string;
   sessionType: string;
   title: string;

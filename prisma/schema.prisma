@@ -399,6 +399,7 @@ model TrainingSession {
   weekId          String
   week            TrainingWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
 
+  sortOrder       Int      @default(0)
   dayOfWeek       String   // "lundi" → "dimanche"
   sessionType     String   // "easy", "tempo", "interval", "long_run", "recovery", "rest"
   title           String

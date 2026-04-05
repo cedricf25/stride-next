@@ -1,9 +1,28 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useId, useState } from "react";
+import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import TrainingSessionCard from "./TrainingSessionCard";
 import Card from "@/components/shared/Card";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { reorderSessions } from "@/actions/training";
 
 interface LinkedActivity {
   id: string;
@@ -17,6 +36,7 @@ interface LinkedActivity {
 
 interface Session {
   id: string;
+  sortOrder: number;
   dayOfWeek: string;
   sessionType: string;
   title: string;
@@ -66,16 +86,90 @@ const dayOrder: Record<string, number> = {
   lundi: 0, mardi: 1, mercredi: 2, jeudi: 3, vendredi: 4, samedi: 5, dimanche: 6,
 };
 
+function SortableSession({
+  session,
+  planningMode,
+}: {
+  session: Session;
+  planningMode: "time" | "distance";
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: session.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-1">
+      <button
+        {...attributes}
+        {...listeners}
+        className="mt-3 flex-shrink-0 cursor-grab touch-none rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] active:cursor-grabbing"
+        aria-label="Réordonner la séance"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <TrainingSessionCard session={session} planningMode={planningMode} />
+      </div>
+    </div>
+  );
+}
+
 export default function TrainingWeekCard({ week, planId, planStartDate, planningMode }: Props) {
-  // Use planId + weekNumber as key for stable state across updates
+  const dndId = useId();
   const [open, setOpen] = useLocalStorage(`week-open-${planId}-${week.weekNumber}`, true);
 
-  const sortedSessions = [...week.sessions].sort(
-    (a, b) => (dayOrder[a.dayOfWeek] ?? 7) - (dayOrder[b.dayOfWeek] ?? 7)
+  // Tri initial : par sortOrder d'abord, puis par dayOfWeek en fallback
+  const initialSorted = [...week.sessions].sort((a, b) => {
+    // Si tous les sortOrder sont 0 (plans existants), fallback sur dayOfWeek
+    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+    return (dayOrder[a.dayOfWeek] ?? 7) - (dayOrder[b.dayOfWeek] ?? 7);
+  });
+
+  const [sessions, setSessions] = useState(initialSorted);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const completed = week.sessions.filter((s) => s.completed).length;
   const total = week.sessions.length;
+
+  // Jours utilisés dans cette semaine, triés par ordre original
+  const usedDays = [...week.sessions]
+    .sort((a, b) => (dayOrder[a.dayOfWeek] ?? 7) - (dayOrder[b.dayOfWeek] ?? 7))
+    .map((s) => s.dayOfWeek);
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sessions.findIndex((s) => s.id === active.id);
+    const newIndex = sessions.findIndex((s) => s.id === over.id);
+    const reordered = arrayMove(sessions, oldIndex, newIndex);
+
+    // Réassigner les jours : chaque position prend le jour correspondant
+    const withNewDays = reordered.map((s, i) => ({
+      ...s,
+      dayOfWeek: usedDays[i],
+    }));
+    setSessions(withNewDays);
+
+    const dayMapping: Record<string, string> = {};
+    withNewDays.forEach((s, i) => { dayMapping[s.id] = usedDays[i]; });
+    await reorderSessions(withNewDays.map((s) => s.id), dayMapping);
+  }
 
   return (
     <Card padding="none">
@@ -113,11 +207,27 @@ export default function TrainingWeekCard({ week, planId, planStartDate, planning
 
       {open && (
         <div className="border-t border-[var(--border-subtle)] px-6 py-4">
-          <div className="space-y-3">
-            {sortedSessions.map((session) => (
-              <TrainingSessionCard key={session.id} session={session} planningMode={planningMode} />
-            ))}
-          </div>
+          <DndContext
+            id={dndId}
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sessions.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {sessions.map((session) => (
+                  <SortableSession
+                    key={session.id}
+                    session={session}
+                    planningMode={planningMode}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
       )}
     </Card>
