@@ -24,6 +24,8 @@ export interface FoodInput {
 export interface FoodItem extends FoodInput {
   id: string;
   mealId: string;
+  imageData?: string | null;
+  imageMimeType?: string | null;
   createdAt: Date;
 }
 
@@ -62,6 +64,15 @@ export interface NutritionTotals {
   fat: number;
 }
 
+// Objectif protéines adapté à l'activité du jour
+export interface ProteinTarget {
+  min: number; // g — seuil minimum (fonte musculaire si en dessous)
+  optimal: number; // g — cible optimale
+  max: number; // g — plafond recommandé
+  isTrainingDay: boolean;
+  ratioPerKg: { min: number; optimal: number; max: number }; // g/kg utilisés
+}
+
 // Journal quotidien
 export interface DailyNutrition {
   date: string;
@@ -70,6 +81,7 @@ export interface DailyNutrition {
   goal: NutritionGoalData | null;
   activitiesCalories: number;
   balance: number; // totals.calories - activitiesCalories - bmr
+  proteinTarget: ProteinTarget | null;
 }
 
 // Objectifs nutritionnels

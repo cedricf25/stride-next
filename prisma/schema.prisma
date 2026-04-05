@@ -552,10 +552,14 @@ model Food {
   carbs       Float
   fat         Float
 
-  source      String   @default("manual") // "manual" | "ai_vision" | "favorite"
-  confidence  Int?     // 0-100 pour IA
+  source        String   @default("manual") // "manual" | "ai_vision" | "favorite"
+  confidence    Int?     // 0-100 pour IA
 
-  createdAt   DateTime @default(now())
+  // Photo source (pour ai_vision)
+  imageData     String?  @db.LongText
+  imageMimeType String?
+
+  createdAt     DateTime @default(now())
 
   @@index([mealId])
 }

@@ -64,22 +64,68 @@ export default function MealCard({
         </div>
       </button>
 
+      {/* Barres macros du repas */}
+      {meal.foods.length > 0 && (() => {
+        const maxValue = Math.max(meal.totalProtein, meal.totalCarbs, meal.totalFat);
+        if (maxValue === 0) return null;
+        const bars = [
+          { value: meal.totalProtein, color: "bg-blue-500", label: "P" },
+          { value: meal.totalCarbs, color: "bg-green-500", label: "G" },
+          { value: meal.totalFat, color: "bg-yellow-500", label: "L" },
+        ];
+        return (
+          <div className="flex gap-1 px-4 pb-2">
+            {bars.map((bar) => (
+              <div
+                key={bar.label}
+                className="flex-1 h-1.5 rounded-full bg-[var(--bg-muted)] overflow-hidden"
+                title={`${bar.label}: ${bar.value.toFixed(0)}g`}
+              >
+                <div
+                  className={`h-full rounded-full ${bar.color}`}
+                  style={{ width: `${(bar.value / maxValue) * 100}%` }}
+                />
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Content */}
       {expanded && (
         <div className="border-t border-[var(--border-default)]">
-          {/* Photo si présente */}
-          {meal.imageData && (
-            <div className="p-4 border-b border-[var(--border-default)]">
-              <div className="relative aspect-video max-w-sm rounded-lg overflow-hidden bg-[var(--bg-muted)]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`data:${meal.imageMimeType};base64,${meal.imageData}`}
-                  alt="Photo du repas"
-                  className="w-full h-full object-cover"
-                />
+          {/* Photos des aliments (dédupliquées) + photo legacy du repas */}
+          {(() => {
+            const foodImages = meal.foods
+              .filter((f) => f.imageData)
+              .reduce<{ data: string; mime: string }[]>((acc, f) => {
+                if (!acc.some((img) => img.data === f.imageData)) {
+                  acc.push({ data: f.imageData!, mime: f.imageMimeType ?? "image/jpeg" });
+                }
+                return acc;
+              }, []);
+            // Fallback : photo legacy sur le meal
+            if (foodImages.length === 0 && meal.imageData) {
+              foodImages.push({ data: meal.imageData, mime: meal.imageMimeType ?? "image/jpeg" });
+            }
+            if (foodImages.length === 0) return null;
+            return (
+              <div className="p-4 border-b border-[var(--border-default)]">
+                <div className={`flex gap-3 ${foodImages.length > 1 ? "overflow-x-auto" : ""}`}>
+                  {foodImages.map((img, i) => (
+                    <div key={i} className="relative aspect-video max-w-sm min-w-[200px] rounded-lg overflow-hidden bg-[var(--bg-muted)] flex-shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`data:${img.mime};base64,${img.data}`}
+                        alt={`Photo du repas ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Liste des aliments */}
           <div className="px-4">

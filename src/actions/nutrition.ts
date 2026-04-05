@@ -14,6 +14,7 @@ import type {
   MealWithFoods,
   FavoriteMealData,
   MealType,
+  ProteinTarget,
 } from "@/types/nutrition";
 
 // ==========================================
@@ -108,6 +109,64 @@ export async function calculateMetabolism(): Promise<
 }
 
 /**
+ * Calcule la fourchette de protéines recommandée pour la journée.
+ *
+ * Basé sur les recommandations sport-nutrition pour coureurs en objectif perte de poids :
+ * - Jour repos : 1.2–1.6 g/kg (préservation musculaire)
+ * - Activité légère (<300 kcal) : 1.4–1.8 g/kg
+ * - Activité modérée (300–600 kcal) : 1.6–2.0 g/kg
+ * - Activité intense (>600 kcal) : 1.8–2.2 g/kg
+ *
+ * En contexte perte de poids, +0.2 g/kg sur chaque seuil pour limiter la fonte musculaire.
+ */
+function calculateProteinTarget(
+  weight: number,
+  activitiesCalories: number,
+  isWeightLoss: boolean
+): ProteinTarget {
+  const isTrainingDay = activitiesCalories > 0;
+  const lossBonus = isWeightLoss ? 0.2 : 0;
+
+  let ratioMin: number;
+  let ratioOptimal: number;
+  let ratioMax: number;
+
+  if (activitiesCalories <= 0) {
+    // Jour repos
+    ratioMin = 1.2 + lossBonus;
+    ratioOptimal = 1.4 + lossBonus;
+    ratioMax = 1.6 + lossBonus;
+  } else if (activitiesCalories <= 300) {
+    // Activité légère
+    ratioMin = 1.4 + lossBonus;
+    ratioOptimal = 1.6 + lossBonus;
+    ratioMax = 1.8 + lossBonus;
+  } else if (activitiesCalories <= 600) {
+    // Activité modérée
+    ratioMin = 1.6 + lossBonus;
+    ratioOptimal = 1.8 + lossBonus;
+    ratioMax = 2.0 + lossBonus;
+  } else {
+    // Activité intense
+    ratioMin = 1.8 + lossBonus;
+    ratioOptimal = 2.0 + lossBonus;
+    ratioMax = 2.2 + lossBonus;
+  }
+
+  return {
+    min: Math.round(weight * ratioMin),
+    optimal: Math.round(weight * ratioOptimal),
+    max: Math.round(weight * ratioMax),
+    isTrainingDay,
+    ratioPerKg: {
+      min: Math.round(ratioMin * 10) / 10,
+      optimal: Math.round(ratioOptimal * 10) / 10,
+      max: Math.round(ratioMax * 10) / 10,
+    },
+  };
+}
+
+/**
  * Sauvegarde ou met à jour les objectifs nutritionnels
  */
 export async function saveNutritionGoal(
@@ -172,7 +231,7 @@ export async function fetchNutritionGoal(): Promise<NutritionGoalData | null> {
 // ==========================================
 
 /**
- * Crée un nouveau repas
+ * Crée un nouveau repas ou retourne le repas existant du même type/jour
  */
 export async function createMeal(
   data: CreateMealInput
@@ -180,6 +239,19 @@ export async function createMeal(
   const user = await getAuthenticatedUser();
 
   try {
+    // Chercher un repas existant du même type pour cette date
+    const existing = await prisma.meal.findFirst({
+      where: {
+        userId: user.id,
+        date: new Date(data.date),
+        mealType: data.mealType,
+      },
+    });
+
+    if (existing) {
+      return { mealId: existing.id };
+    }
+
     const meal = await prisma.meal.create({
       data: {
         userId: user.id,
@@ -382,6 +454,8 @@ export async function fetchDailyNutrition(
       fat: food.fat,
       source: food.source as "manual" | "ai_vision" | "favorite",
       confidence: food.confidence ?? undefined,
+      imageData: food.imageData,
+      imageMimeType: food.imageMimeType,
       createdAt: food.createdAt,
     })),
     hasAnalysis: meal.analysis !== null,
@@ -429,6 +503,17 @@ export async function fetchDailyNutrition(
   const expenditure = bmr + activitiesCalories;
   const balance = totals.calories - expenditure;
 
+  // Calculer la fourchette de protéines recommandée
+  let proteinTarget: ProteinTarget | null = null;
+  if (user.weight) {
+    const isWeightLoss = (goal?.weeklyWeightGoal ?? 0) < 0;
+    proteinTarget = calculateProteinTarget(
+      user.weight,
+      activitiesCalories,
+      isWeightLoss
+    );
+  }
+
   return {
     date: dateStr,
     meals: formattedMeals,
@@ -436,6 +521,7 @@ export async function fetchDailyNutrition(
     goal,
     activitiesCalories,
     balance,
+    proteinTarget,
   };
 }
 

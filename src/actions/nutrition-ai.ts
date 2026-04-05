@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/user";
 import type { PhotoAnalysisResult, FoodInput, MealType } from "@/types/nutrition";
-import { fetchNutritionHistory, fetchNutritionGoal } from "./nutrition";
+import { fetchNutritionHistory, fetchNutritionGoal, updateMealTotals } from "./nutrition";
 
 // ==========================================
 // CONFIGURATION
@@ -27,10 +27,12 @@ const PHOTO_ANALYSIS_PROMPT = `Tu es un nutritionniste expert. Analyse cette pho
 
 Pour chaque aliment visible, estime :
 1. Nom en français
-2. Quantité approximative (grammes ou ml)
-3. Calories
-4. Macronutriments (protéines, glucides, lipides en grammes)
+2. Quantité approximative d'UNE SEULE portion/pièce (grammes ou ml)
+3. Calories pour UNE portion
+4. Macronutriments pour UNE portion (protéines, glucides, lipides en grammes)
 5. Score de confiance (0-100) sur ton estimation
+
+IMPORTANT : si tu vois plusieurs exemplaires du même aliment (ex: 2 tartelettes, 3 sushis), crée UNE SEULE entrée avec quantity = poids d'une pièce et numberOfItems = nombre de pièces. Les valeurs nutritionnelles (calories, protein, carbs, fat) doivent correspondre à UNE SEULE pièce.
 
 Réponds UNIQUEMENT avec un JSON valide selon ce schéma :
 {
@@ -38,6 +40,7 @@ Réponds UNIQUEMENT avec un JSON valide selon ce schéma :
     {
       "name": "string",
       "quantity": number,
+      "numberOfItems": number,
       "unit": "g" | "ml" | "portion",
       "calories": number,
       "protein": number,
@@ -106,7 +109,28 @@ export async function analyzePhoto(
     });
 
     const text = response.text ?? "{}";
-    const result = JSON.parse(text) as PhotoAnalysisResult;
+    const raw = JSON.parse(text);
+
+    // Multiplier par numberOfItems si présent
+    const result: PhotoAnalysisResult = {
+      analysis: raw.analysis ?? "",
+      totalCalories: 0,
+      foods: (raw.foods ?? []).map((f: Record<string, unknown>) => {
+        const n = (f.numberOfItems as number) ?? 1;
+        const food = {
+          name: n > 1 ? `${f.name} (x${n})` : (f.name as string),
+          quantity: ((f.quantity as number) ?? 0) * n,
+          unit: (f.unit as string) ?? "g",
+          calories: Math.round(((f.calories as number) ?? 0) * n),
+          protein: Math.round(((f.protein as number) ?? 0) * n),
+          carbs: Math.round(((f.carbs as number) ?? 0) * n),
+          fat: Math.round(((f.fat as number) ?? 0) * n),
+          confidence: (f.confidence as number) ?? 80,
+        };
+        return food;
+      }),
+    };
+    result.totalCalories = result.foods.reduce((s, f) => s + f.calories, 0);
 
     return result;
   } catch (error) {
@@ -211,24 +235,39 @@ export async function createMealFromPhoto(
       { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 }
     );
 
-    // Créer le repas avec la photo
-    const meal = await prisma.meal.create({
-      data: {
+    // Chercher un repas existant du même type pour cette date
+    const existing = await prisma.meal.findFirst({
+      where: {
         userId: user.id,
         date: new Date(dateStr),
         mealType,
-        name: name ?? null,
-        imageData: imageBase64,
-        imageMimeType: mimeType,
-        ...totals,
       },
     });
 
-    // Ajouter les aliments
+    let mealId: string;
+
+    if (existing) {
+      mealId = existing.id;
+    } else {
+      const meal = await prisma.meal.create({
+        data: {
+          userId: user.id,
+          date: new Date(dateStr),
+          mealType,
+          name: name ?? null,
+          imageData: imageBase64,
+          imageMimeType: mimeType,
+          ...totals,
+        },
+      });
+      mealId = meal.id;
+    }
+
+    // Ajouter les aliments avec la photo associée
     if (foods.length > 0) {
       await prisma.food.createMany({
         data: foods.map((f) => ({
-          mealId: meal.id,
+          mealId,
           name: f.name,
           quantity: f.quantity,
           unit: f.unit,
@@ -238,12 +277,17 @@ export async function createMealFromPhoto(
           fat: f.fat,
           source: "ai_vision",
           confidence: f.confidence ?? null,
+          imageData: imageBase64,
+          imageMimeType: mimeType,
         })),
       });
     }
 
+    // Recalculer les totaux du repas fusionné
+    await updateMealTotals(mealId);
+
     revalidatePath("/nutrition");
-    return { mealId: meal.id };
+    return { mealId };
   } catch (error) {
     console.error("Error creating meal from photo:", error);
     return { error: "Erreur lors de la création du repas" };

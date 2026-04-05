@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Plus, Camera, Settings, History, Heart } from "lucide-react";
 import { fetchDailyNutrition } from "@/actions/nutrition";
-import { DailyNutritionHeader, MealCard } from "@/components/nutrition";
+import { DailyNutritionHeader, MealList, DateNavigator } from "@/components/nutrition";
 import { PageContainer, SectionHeader, Button, EmptyState } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
@@ -11,15 +12,16 @@ function getTodayDateString(): string {
   return today.toISOString().split("T")[0];
 }
 
-export default async function NutritionPage() {
-  const todayStr = getTodayDateString();
-  const data = await fetchDailyNutrition(todayStr);
+interface NutritionPageProps {
+  searchParams: Promise<{ date?: string }>;
+}
 
-  const todayFormatted = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+export default async function NutritionPage({ searchParams }: NutritionPageProps) {
+  const { date } = await searchParams;
+  const todayStr = getTodayDateString();
+  const selectedDate = date ?? todayStr;
+  const isToday = selectedDate === todayStr;
+  const data = await fetchDailyNutrition(selectedDate);
 
   return (
     <PageContainer>
@@ -29,19 +31,19 @@ export default async function NutritionPage() {
           <h1 className="text-xl font-bold text-[var(--text-primary)] md:text-2xl">
             Nutrition
           </h1>
-          <p className="text-sm text-[var(--text-muted)] capitalize">
-            {todayFormatted}
-          </p>
+          <Suspense>
+            <DateNavigator />
+          </Suspense>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Link href="/nutrition/add/photo">
+          <Link href={`/nutrition/add/photo${!isToday ? `?date=${selectedDate}` : ""}`}>
             <Button variant="ghost-primary" size="sm">
               <Camera className="h-4 w-4 mr-1.5" />
               Photo
             </Button>
           </Link>
-          <Link href="/nutrition/add">
+          <Link href={`/nutrition/add${!isToday ? `?date=${selectedDate}` : ""}`}>
             <Button variant="primary" size="sm">
               <Plus className="h-4 w-4 mr-1.5" />
               Ajouter
@@ -81,33 +83,29 @@ export default async function NutritionPage() {
 
       {/* Liste des repas */}
       <SectionHeader
-        title="Repas du jour"
+        title={isToday ? "Repas du jour" : "Repas"}
         icon={null}
         size="md"
         className="mb-4"
       />
 
       {data.meals.length > 0 ? (
-        <div className="space-y-4">
-          {data.meals.map((meal) => (
-            <MealCard key={meal.id} meal={meal} editable={false} />
-          ))}
-        </div>
+        <MealList meals={data.meals} />
       ) : (
         <EmptyState
           title="Aucun repas"
-          message="Commence par ajouter ton premier repas de la journée"
+          message={isToday ? "Commence par ajouter ton premier repas de la journée" : "Aucun repas enregistré ce jour"}
           icon={<Plus className="h-10 w-10" />}
           variant="dashed"
         >
           <div className="flex flex-wrap justify-center gap-2 mt-4">
-            <Link href="/nutrition/add/photo">
+            <Link href={`/nutrition/add/photo${!isToday ? `?date=${selectedDate}` : ""}`}>
               <Button variant="secondary" size="sm">
                 <Camera className="h-4 w-4 mr-1.5" />
                 Analyser une photo
               </Button>
             </Link>
-            <Link href="/nutrition/add">
+            <Link href={`/nutrition/add${!isToday ? `?date=${selectedDate}` : ""}`}>
               <Button variant="primary" size="sm">
                 <Plus className="h-4 w-4 mr-1.5" />
                 Ajouter manuellement

@@ -151,6 +151,36 @@ export default function NutritionGoalForm({
     setSaving(false);
   };
 
+  // Calcul automatique des macros
+  const handleAutoMacros = () => {
+    const w = parseFloat(weight);
+    const cal = parseInt(targetCalories);
+    if (!w || !cal) {
+      setError("Poids et objectif calorique requis pour le calcul automatique");
+      return;
+    }
+
+    const isWeightLoss = parseFloat(weeklyWeightGoal) < 0;
+
+    // Protéines : 1.6-2.0 g/kg (plus haut si perte de poids pour préserver la masse musculaire)
+    const proteinRatio = isWeightLoss ? 2.0 : 1.6;
+    const proteinG = Math.round(w * proteinRatio);
+    const proteinCal = proteinG * 4;
+
+    // Lipides : 25% des calories totales (min santé)
+    const fatCal = Math.round(cal * 0.25);
+    const fatG = Math.round(fatCal / 9);
+
+    // Glucides : le reste
+    const carbsCal = cal - proteinCal - fatCal;
+    const carbsG = Math.max(0, Math.round(carbsCal / 4));
+
+    setTargetProtein(proteinG.toString());
+    setTargetFat(fatG.toString());
+    setTargetCarbs(carbsG.toString());
+  };
+
+  const canAutoMacros = weight && targetCalories;
   const isProfileComplete = weight && height && birthDate && gender;
 
   return (
@@ -313,9 +343,21 @@ export default function NutritionGoalForm({
 
       {/* Objectifs caloriques */}
       <Card padding="md">
-        <h2 className="font-semibold text-[var(--text-primary)] mb-4">
-          Objectifs quotidiens
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-[var(--text-primary)]">
+            Objectifs quotidiens
+          </h2>
+          <Button
+            onClick={handleAutoMacros}
+            variant="ghost-primary"
+            size="sm"
+            disabled={!canAutoMacros}
+            title={!canAutoMacros ? "Renseigne ton poids et les calories cibles d'abord" : ""}
+          >
+            <Calculator className="h-4 w-4 mr-1.5" />
+            Calcul auto
+          </Button>
+        </div>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <FormField label="Calories (kcal)" htmlFor="targetCalories">
@@ -330,7 +372,7 @@ export default function NutritionGoalForm({
             />
           </FormField>
 
-          <FormField label="Protéines (g)" htmlFor="targetProtein" labelSuffix="(optionnel)">
+          <FormField label="Protéines (g)" htmlFor="targetProtein">
             <Input
               id="targetProtein"
               type="number"
@@ -342,7 +384,7 @@ export default function NutritionGoalForm({
             />
           </FormField>
 
-          <FormField label="Glucides (g)" htmlFor="targetCarbs" labelSuffix="(optionnel)">
+          <FormField label="Glucides (g)" htmlFor="targetCarbs">
             <Input
               id="targetCarbs"
               type="number"
@@ -354,7 +396,7 @@ export default function NutritionGoalForm({
             />
           </FormField>
 
-          <FormField label="Lipides (g)" htmlFor="targetFat" labelSuffix="(optionnel)">
+          <FormField label="Lipides (g)" htmlFor="targetFat">
             <Input
               id="targetFat"
               type="number"
@@ -366,6 +408,14 @@ export default function NutritionGoalForm({
             />
           </FormField>
         </div>
+
+        {targetProtein && targetCarbs && targetFat && targetCalories && (
+          <div className="mt-3 text-xs text-[var(--text-muted)]">
+            Répartition : protéines {Math.round((parseInt(targetProtein) * 4 / parseInt(targetCalories)) * 100)}%
+            {" · "}glucides {Math.round((parseInt(targetCarbs) * 4 / parseInt(targetCalories)) * 100)}%
+            {" · "}lipides {Math.round((parseInt(targetFat) * 9 / parseInt(targetCalories)) * 100)}%
+          </div>
+        )}
       </Card>
 
       {/* Bouton sauvegarder */}

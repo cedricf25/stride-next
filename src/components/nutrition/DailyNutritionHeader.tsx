@@ -1,6 +1,7 @@
 import { Flame, Target, TrendingDown, TrendingUp, Activity } from "lucide-react";
-import { Card, ProgressBar } from "@/components/shared";
+import { Card } from "@/components/shared";
 import MacrosPieChart from "./MacrosPieChart";
+import ProteinGauge from "./ProteinGauge";
 import type { DailyNutrition } from "@/types/nutrition";
 
 interface DailyNutritionHeaderProps {
@@ -10,14 +11,17 @@ interface DailyNutritionHeaderProps {
 export default function DailyNutritionHeader({
   data,
 }: DailyNutritionHeaderProps) {
-  const { totals, goal, activitiesCalories, balance } = data;
+  const { totals, goal, activitiesCalories, balance, proteinTarget } = data;
 
   const targetCalories = goal?.targetCalories ?? 2000;
-  const caloriesPercent = Math.min(
-    100,
-    (totals.calories / targetCalories) * 100
-  );
   const remaining = targetCalories - totals.calories;
+  const isOver = totals.calories > targetCalories;
+
+  // Pour la barre : si surplus, on scale pour montrer le dépassement
+  // Ex: 1460/1200 → la barre objectif s'arrête à ~82%, la barre totale va à 100%
+  const scaleMax = isOver ? totals.calories : targetCalories;
+  const targetPct = (targetCalories / scaleMax) * 100;
+  const filledPct = (totals.calories / scaleMax) * 100;
 
   // Calcul du bilan énergétique
   const bmr = goal?.bmr ?? 0;
@@ -41,17 +45,28 @@ export default function DailyNutritionHeader({
               </span>
             </div>
 
-            <ProgressBar
-              value={caloriesPercent}
-              color={
-                caloriesPercent > 100
-                  ? "bg-red-500"
-                  : caloriesPercent > 90
-                    ? "bg-orange-500"
-                    : "bg-green-500"
-              }
-              className="h-3"
-            />
+            {/* Barre calories avec visualisation du surplus */}
+            <div className="relative h-3 w-full rounded-full bg-[var(--bg-muted)]">
+              {/* Portion dans l'objectif (vert) */}
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-green-500"
+                style={{ width: `${isOver ? targetPct : filledPct}%` }}
+              />
+              {/* Portion en surplus (rouge) */}
+              {isOver && (
+                <div
+                  className="absolute inset-y-0 rounded-r-full bg-red-500"
+                  style={{ left: `${targetPct}%`, width: `${filledPct - targetPct}%` }}
+                />
+              )}
+              {/* Marqueur objectif quand en surplus */}
+              {isOver && (
+                <div
+                  className="absolute inset-y-0 w-0.5 bg-white dark:bg-gray-800 z-10"
+                  style={{ left: `${targetPct}%` }}
+                />
+              )}
+            </div>
 
             <div className="mt-3 flex items-center justify-between text-sm">
               <div className="flex items-center gap-1.5">
@@ -79,15 +94,64 @@ export default function DailyNutritionHeader({
             </div>
           </div>
 
-          {/* Macros */}
-          <div className="flex justify-center">
-            <MacrosPieChart
-              protein={totals.protein}
-              carbs={totals.carbs}
-              fat={totals.fat}
-              size={100}
-            />
-          </div>
+          {/* Macros barres */}
+          {goal?.targetProtein && goal?.targetCarbs && goal?.targetFat ? (
+            <div className="flex-1 space-y-2">
+              {[
+                { label: "Protéines", value: totals.protein, goal: goal.targetProtein, color: "bg-blue-500", textColor: "text-blue-600 dark:text-blue-400" },
+                { label: "Glucides", value: totals.carbs, goal: goal.targetCarbs, color: "bg-green-500", textColor: "text-green-600 dark:text-green-400" },
+                { label: "Lipides", value: totals.fat, goal: goal.targetFat, color: "bg-yellow-500", textColor: "text-yellow-600 dark:text-yellow-400" },
+              ].map((macro) => {
+                const pct = (macro.value / macro.goal) * 100;
+                const over = macro.value > macro.goal;
+                const barTarget = over ? (macro.goal / macro.value) * 100 : pct;
+                return (
+                  <div key={macro.label}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-xs font-medium text-[var(--text-secondary)]">
+                        {macro.label}
+                      </span>
+                      <span className={`text-xs font-semibold ${over ? "text-red-600 dark:text-red-400" : macro.textColor}`}>
+                        {macro.value.toFixed(0)}g / {macro.goal}g
+                      </span>
+                    </div>
+                    <div className="relative h-2 w-full rounded-full bg-[var(--bg-muted)]">
+                      {over ? (
+                        <>
+                          <div
+                            className={`absolute inset-y-0 left-0 rounded-full ${macro.color}`}
+                            style={{ width: `${barTarget}%` }}
+                          />
+                          <div
+                            className="absolute inset-y-0 rounded-r-full bg-red-500"
+                            style={{ left: `${barTarget}%`, width: `${100 - barTarget}%` }}
+                          />
+                          <div
+                            className="absolute inset-y-0 w-0.5 bg-white dark:bg-gray-800 z-10"
+                            style={{ left: `${barTarget}%` }}
+                          />
+                        </>
+                      ) : (
+                        <div
+                          className={`absolute inset-y-0 left-0 rounded-full ${macro.color}`}
+                          style={{ width: `${Math.min(barTarget, 100)}%` }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <MacrosPieChart
+                protein={totals.protein}
+                carbs={totals.carbs}
+                fat={totals.fat}
+                size={100}
+              />
+            </div>
+          )}
         </div>
       </Card>
 
@@ -164,6 +228,12 @@ export default function DailyNutritionHeader({
           </div>
         </div>
       </Card>
+      {/* Réglette protéines */}
+      {proteinTarget && (
+        <Card padding="md" className="lg:col-span-3">
+          <ProteinGauge consumed={totals.protein} target={proteinTarget} />
+        </Card>
+      )}
     </div>
   );
 }

@@ -7,3 +7,6 @@ export { default as AddFoodForm } from "./AddFoodForm";
 export { default as PhotoUpload } from "./PhotoUpload";
 export { default as NutritionGoalForm } from "./NutritionGoalForm";
 export { default as FavoriteMealCard } from "./FavoriteMealCard";
+export { default as ProteinGauge } from "./ProteinGauge";
+export { default as DateNavigator } from "./DateNavigator";
+export { default as MealList } from "./MealList";
