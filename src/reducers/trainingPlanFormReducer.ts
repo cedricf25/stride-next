@@ -8,6 +8,8 @@ export interface TrainingPlanFormState {
   daysPerWeek: number;
   longRunDay: string;
   planningMode: "time" | "distance";
+  includeStrength: boolean;
+  strengthFrequency: number;
   loading: boolean;
   error: string;
 }
@@ -22,12 +24,14 @@ export const initialState: TrainingPlanFormState = {
   daysPerWeek: 4,
   longRunDay: "dimanche",
   planningMode: "time",
+  includeStrength: false,
+  strengthFrequency: 2,
   loading: false,
   error: "",
 };
 
 export type TrainingPlanFormAction =
-  | { type: "SET_FIELD"; field: keyof TrainingPlanFormState; value: string | number }
+  | { type: "SET_FIELD"; field: keyof TrainingPlanFormState; value: string | number | boolean }
   | { type: "SET_RACE_TYPE"; value: string }
   | { type: "SET_LOADING"; value: boolean }
   | { type: "SET_ERROR"; value: string }

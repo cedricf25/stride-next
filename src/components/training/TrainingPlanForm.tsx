@@ -53,6 +53,8 @@ export default function TrainingPlanForm() {
         daysPerWeek: state.daysPerWeek,
         longRunDay: state.longRunDay,
         planningMode: state.planningMode,
+        includeStrength: state.includeStrength,
+        strengthFrequency: state.includeStrength ? state.strengthFrequency : undefined,
       });
 
       router.push(`/training/${result.planId}`);
@@ -170,6 +172,36 @@ export default function TrainingPlanForm() {
             </option>
           ))}
         </Select>
+      </FormField>
+
+      {/* Strength training */}
+      <FormField label="Renforcement musculaire">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={state.includeStrength}
+            onChange={(e) => dispatch({ type: "SET_FIELD", field: "includeStrength", value: e.target.checked })}
+            className="w-4 h-4 rounded border-[var(--border-default)] accent-[var(--accent)]"
+          />
+          <span className="text-sm">Inclure du renforcement musculaire</span>
+        </label>
+        {state.includeStrength && (
+          <div className="mt-3">
+            <p className="text-xs text-[var(--text-muted)] mb-2">Nombre de séances par semaine</p>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((n) => (
+                <Button
+                  key={n}
+                  type="button"
+                  variant={state.strengthFrequency === n ? "primary" : "secondary"}
+                  onClick={() => dispatch({ type: "SET_FIELD", field: "strengthFrequency", value: n })}
+                >
+                  {n}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
       </FormField>
 
       {/* Planning mode */}

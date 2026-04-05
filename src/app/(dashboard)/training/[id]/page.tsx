@@ -32,24 +32,22 @@ export default async function TrainingPlanPage({
 
       <TrainingPlanHeader plan={plan} />
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 flex items-center gap-3">
         <UpdatePlanButton
           planId={plan.id}
           currentStartDate={plan.startDate?.toISOString().split("T")[0]}
         />
-        <div className="flex items-center gap-3">
-          <DeletePlanButton planId={plan.id} />
-          {plan.currentVersion > 1 && (
-            <LinkButton
-              href={`/training/${plan.id}/versions`}
-              variant="ghost"
-              size="sm"
-              icon={<History className="h-4 w-4" />}
-            >
-              Historique ({plan.currentVersion} versions)
-            </LinkButton>
-          )}
-        </div>
+        <DeletePlanButton planId={plan.id} />
+        {plan.currentVersion > 1 && (
+          <LinkButton
+            href={`/training/${plan.id}/versions`}
+            variant="ghost"
+            size="sm"
+            icon={<History className="h-4 w-4" />}
+          >
+            Historique ({plan.currentVersion} versions)
+          </LinkButton>
+        )}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">

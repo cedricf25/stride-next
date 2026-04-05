@@ -30,6 +30,7 @@ interface Session {
   workoutSummary: string | null;
   elevationGain: number | null;
   terrainType: string | null;
+  exercises: string | null;
   completed: boolean;
   linkedActivityId: string | null;
   linkedActivity: LinkedActivity | null;
@@ -61,9 +62,17 @@ function formatWeekDates(planStartDate: Date, weekNumber: number): string {
   return `${fmtDay(start)} – ${fmtDay(end)}`;
 }
 
+const dayOrder: Record<string, number> = {
+  lundi: 0, mardi: 1, mercredi: 2, jeudi: 3, vendredi: 4, samedi: 5, dimanche: 6,
+};
+
 export default function TrainingWeekCard({ week, planId, planStartDate, planningMode }: Props) {
   // Use planId + weekNumber as key for stable state across updates
   const [open, setOpen] = useLocalStorage(`week-open-${planId}-${week.weekNumber}`, true);
+
+  const sortedSessions = [...week.sessions].sort(
+    (a, b) => (dayOrder[a.dayOfWeek] ?? 7) - (dayOrder[b.dayOfWeek] ?? 7)
+  );
 
   const completed = week.sessions.filter((s) => s.completed).length;
   const total = week.sessions.length;
@@ -105,7 +114,7 @@ export default function TrainingWeekCard({ week, planId, planStartDate, planning
       {open && (
         <div className="border-t border-[var(--border-subtle)] px-6 py-4">
           <div className="space-y-3">
-            {week.sessions.map((session) => (
+            {sortedSessions.map((session) => (
               <TrainingSessionCard key={session.id} session={session} planningMode={planningMode} />
             ))}
           </div>

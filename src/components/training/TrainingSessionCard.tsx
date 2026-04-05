@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, MoreVertical, Clock, Ruler, Upload, Loader2, Mountain, TreePine } from "lucide-react";
+import { ExternalLink, MoreVertical, Clock, Ruler, Upload, Loader2, Mountain, TreePine, ChevronDown, ChevronRight, Play } from "lucide-react";
 import { toggleSessionCompleted, updateSessionDisplayMode } from "@/actions/training";
 import { exportSessionToGarmin } from "@/actions/garmin-export";
 
@@ -33,6 +33,7 @@ interface Props {
     workoutSummary: string | null;
     elevationGain: number | null;
     terrainType: string | null;
+    exercises: string | null;
     completed: boolean;
     linkedActivityId: string | null;
     linkedActivity: LinkedActivity | null;
@@ -48,6 +49,7 @@ const typeColors: Record<string, string> = {
   interval: "border-l-red-500 bg-red-50",
   long_run: "border-l-blue-500 bg-blue-50",
   rest: "border-l-[var(--border-default)] bg-[var(--bg-surface-hover)]",
+  strength: "border-l-purple-500 bg-purple-50",
 };
 
 const typeLabels: Record<string, string> = {
@@ -57,6 +59,7 @@ const typeLabels: Record<string, string> = {
   interval: "Fractionné",
   long_run: "Sortie longue",
   rest: "Repos",
+  strength: "Renforcement",
 };
 
 // Labels courts pour affichage compact (badge)
@@ -67,6 +70,7 @@ const typeShortLabels: Record<string, string> = {
   interval: "VMA",
   long_run: "SL",
   rest: "Repos",
+  strength: "PPG",
 };
 
 // Couleurs des badges par type de séance
@@ -77,6 +81,7 @@ const typeBadgeColors: Record<string, string> = {
   interval: "bg-red-100 text-red-700",
   long_run: "bg-blue-100 text-blue-700",
   rest: "bg-gray-100 text-gray-500",
+  strength: "bg-purple-100 text-purple-700",
 };
 
 function formatDistance(meters: number): string {
@@ -109,9 +114,27 @@ function getVariationIcon(planned: number, actual: number, tolerance: number = 0
   return "↓";
 }
 
+interface Exercise {
+  name: string;
+  sets: number;
+  reps: string;
+  tip: string;
+}
+
+function parseExercises(raw: string | null): Exercise[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function TrainingSessionCard({ session, planningMode }: Props) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [exercisesOpen, setExercisesOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -241,6 +264,54 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
           {session.title}
         </p>
         <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">{session.description}</p>
+
+        {/* Exercices de renforcement */}
+        {session.sessionType === "strength" && (() => {
+          const exercises = parseExercises(session.exercises);
+          if (exercises.length === 0) return null;
+          return (
+            <div className="mt-2">
+              <button
+                onClick={() => setExercisesOpen(!exercisesOpen)}
+                className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700"
+              >
+                {exercisesOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                {exercises.length} exercices
+              </button>
+              {exercisesOpen && (
+                <div className="mt-2 space-y-2">
+                  {exercises.map((ex, i) => (
+                    <div key={i} className="rounded-md bg-[var(--bg-surface)] px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[var(--text-primary)]">
+                          {ex.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-medium text-purple-600">
+                            {ex.sets} × {ex.reps}
+                          </span>
+                          <a
+                            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + " exercice technique")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-0.5 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600 hover:bg-red-100"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Play className="h-2.5 w-2.5" />
+                            Vidéo
+                          </a>
+                        </div>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                        {ex.tip}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Comparatif planifié vs réalisé */}
         {activity ? (

@@ -336,6 +336,8 @@ model TrainingPlan {
   daysPerWeek         Int
   longRunDay          String   // "lundi" → "dimanche"
   planningMode        String   @default("time") // "time" ou "distance" - mode de planification par défaut
+  includeStrength     Boolean  @default(false)
+  strengthFrequency   Int?     // 1 à 4 séances de renforcement par semaine
   status              String   @default("active") // "active", "completed", "archived"
   goalProbability     Int?
   goalAssessment      String?  @db.Text
@@ -410,6 +412,7 @@ model TrainingSession {
   workoutSummary  String?  // Résumé court pour intervalles: "3×10' Z4", "8×400m", "2×(6×200m)"
   elevationGain   Int?     // D+ en mètres (trail uniquement)
   terrainType     String?  // "route", "chemin", "sentier technique", "montagne", etc.
+  exercises       String?  @db.Text // JSON array d'exercices pour séances strength
   completed       Boolean  @default(false)
 
   // Lien vers l'activité réelle correspondante

@@ -88,6 +88,7 @@ async function createPlanSnapshot(
         workoutSummary: s.workoutSummary,
         elevationGain: s.elevationGain,
         terrainType: s.terrainType,
+        exercises: s.exercises,
       })),
     })),
   };
@@ -419,6 +420,8 @@ export interface TrainingPlanInput {
   daysPerWeek: number;
   longRunDay: string;
   planningMode: "time" | "distance";
+  includeStrength?: boolean;
+  strengthFrequency?: number;
 }
 
 function getModeInstruction(planningMode: "time" | "distance"): string {
@@ -430,7 +433,7 @@ function getModeInstruction(planningMode: "time" | "distance"): string {
 function getSessionSchema(planningMode: "time" | "distance"): string {
   return `{
   "dayOfWeek": "lundi|mardi|...|dimanche",
-  "sessionType": "easy|tempo|interval|long_run|recovery|rest",
+  "sessionType": "easy|tempo|interval|long_run|recovery|rest|strength",
   "title": "string - titre court",
   "description": "string - détail avec ${planningMode === "time" ? "durée" : "distance"} en priorité",
   "distance": "number|null (km)",
@@ -440,7 +443,8 @@ function getSessionSchema(planningMode: "time" | "distance"): string {
   "intensity": "low|moderate|high|very_high",
   "workoutSummary": "string|null - résumé court AVEC récup : 8×400m r=1'30, 3×10' Z4 r=3', 2×(6×200m r=30s) R=3', null si séance simple",
   "elevationGain": "number|null - D+ en mètres, OBLIGATOIRE pour les plans trail (même 0 pour une séance plate)",
-  "terrainType": "string|null - type de terrain : route, chemin, sentier, sentier technique, montagne, piste. OBLIGATOIRE pour les plans trail"
+  "terrainType": "string|null - type de terrain : route, chemin, sentier, sentier technique, montagne, piste. OBLIGATOIRE pour les plans trail",
+  "exercises": "array|null - OBLIGATOIRE si sessionType=strength. Tableau d'exercices : [{ name: string, sets: number, reps: string (ex: '12' ou '30s'), tip: string (conseil d'exécution court, posture clé) }]"
 }`;
 }
 
@@ -468,6 +472,19 @@ Règles :
 - Respecte le nombre de jours d'entraînement demandé
 - Place la sortie longue le jour demandé
 - Inclus des jours de repos
+
+Règles RENFORCEMENT MUSCULAIRE (si demandé) :
+- Ajoute le nombre exact de séances "strength" demandées par semaine, EN PLUS des séances de course
+- Adapte les exercices au type de course : gainage/proprioception pour trail, plyométrie pour 10km, endurance musculaire pour marathon
+- Le champ "description" doit résumer la séance en une phrase courte
+- Le champ "exercises" est OBLIGATOIRE pour chaque séance strength : tableau d'exercices avec name, sets, reps, tip
+- Utilise des noms d'exercices standards et reconnus (ex: "Squats", "Fentes bulgares", "Planche", "Pompes", "Chaise", "Gainage latéral")
+- Le champ "tip" doit donner un conseil d'exécution concret (posture, erreur à éviter)
+- Le champ "duration" indique la durée en minutes (typiquement 20-40 min)
+- Place les séances de renforcement sur des jours différents des séances intensives (fractionné, tempo)
+- Progresse dans la difficulté au fil des semaines (volume → intensité → spécificité)
+- En phase d'affûtage, réduis le renforcement (maintien uniquement)
+- 4 à 8 exercices par séance
 
 Règles spécifiques TRAIL (si raceType contient "trail") :
 - OBLIGATOIRE : renseigne "elevationGain" (D+ en mètres) et "terrainType" pour CHAQUE séance non-repos
@@ -548,6 +565,8 @@ export async function generateTrainingPlan(input: TrainingPlanInput) {
       daysPerWeek: input.daysPerWeek,
       longRunDay: input.longRunDay,
       planningMode: input.planningMode,
+      includeStrength: input.includeStrength ?? false,
+      strengthFrequency: input.includeStrength ? (input.strengthFrequency ?? 2) : null,
     },
   });
 
@@ -661,6 +680,7 @@ ${input.targetElevation ? `- D+ cible : ${input.targetElevation} m` : ""}
 ${input.targetTime ? `- Objectif chrono : ${input.targetTime}` : ""}
 - Jours d'entraînement par semaine : ${input.daysPerWeek}
 - Jour de sortie longue : ${input.longRunDay}
+${input.includeStrength ? `- Renforcement musculaire : OUI, ${input.strengthFrequency ?? 2} séance(s) par semaine (sessionType: "strength")` : ""}
 - Durée totale du plan : ${totalWeeks} semaines
 ${pastWeeks > 0 ? `- Semaines déjà écoulées : ${pastWeeks} (les semaines 1 à ${pastWeeks} sont dans le passé, génère-les quand même pour montrer la progression rétrospective)` : ""}
 ${pastActivitiesSummary}
@@ -723,6 +743,7 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
               workoutSummary: session.workoutSummary ?? null,
               elevationGain: session.elevationGain ?? null,
               terrainType: session.terrainType ?? null,
+              exercises: session.exercises ? JSON.stringify(session.exercises) : null,
               completed: isPastWeek,
             },
           });
@@ -1750,6 +1771,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
               workoutSummary: session?.workoutSummary ?? null,
               elevationGain: session?.elevationGain ?? null,
               terrainType: session?.terrainType ?? null,
+              exercises: session?.exercises ? JSON.stringify(session.exercises) : null,
               completed: isPastWeek,
             },
           });
@@ -1786,6 +1808,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
               workoutSummary: existingSession.workoutSummary,
               elevationGain: existingSession.elevationGain,
               terrainType: existingSession.terrainType,
+              exercises: existingSession.exercises,
               changeReason: null,
             });
 
@@ -1804,6 +1827,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
                 workoutSummary: existingSession.workoutSummary,
                 elevationGain: existingSession.elevationGain,
                 terrainType: existingSession.terrainType,
+                exercises: existingSession.exercises,
                 completed: isPastWeek || existingSession.completed,
               },
             });
@@ -1870,6 +1894,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
       workoutSummary: s.workoutSummary,
       elevationGain: s.elevationGain,
       terrainType: s.terrainType,
+      exercises: s.exercises,
     })),
   }));
 
@@ -1891,6 +1916,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
       workoutSummary: s.workoutSummary ?? null,
       elevationGain: s.elevationGain ?? null,
       terrainType: s.terrainType ?? null,
+      exercises: s.exercises ?? null,
       changeReason: s.changeReason ?? undefined,
     })),
   }));
@@ -2063,6 +2089,7 @@ export async function restorePlanVersion(planId: string, versionNumber: number) 
           workoutSummary: sessionData.workoutSummary ?? null,
           elevationGain: sessionData.elevationGain ?? null,
           terrainType: sessionData.terrainType ?? null,
+          exercises: sessionData.exercises ? JSON.stringify(sessionData.exercises) : null,
           completed: isPastWeek,
         },
       });
@@ -2236,6 +2263,7 @@ export async function setDefaultVersion(planId: string, versionNumber: number) {
           workoutSummary: sessionData.workoutSummary ?? null,
           elevationGain: sessionData.elevationGain ?? null,
           terrainType: sessionData.terrainType ?? null,
+          exercises: sessionData.exercises ? JSON.stringify(sessionData.exercises) : null,
           completed: isPastWeek,
         },
       });

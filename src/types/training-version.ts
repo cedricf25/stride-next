@@ -9,6 +9,9 @@ export interface SessionSnapshot {
   targetHRZone: string | null;
   intensity: string;
   workoutSummary?: string | null; // Résumé court pour intervalles: "3×10' Z4", "8×400m"
+  elevationGain?: number | null;
+  terrainType?: string | null;
+  exercises?: string | null; // JSON array d'exercices pour séances strength
   changeReason?: string; // Justification IA pour les modifications
 }
 
