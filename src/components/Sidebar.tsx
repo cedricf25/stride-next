@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Heart, Target, Timer, List, Settings, X } from "lucide-react";
+import { Activity, Heart, Target, Timer, List, Settings, X, UtensilsCrossed } from "lucide-react";
 import SyncButton from "./SyncButton";
 import UserMenu from "./UserMenu";
 import { useMobileSidebar } from "@/contexts/MobileSidebarContext";
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/health", label: "Santé", icon: Heart },
   { href: "/training", label: "Entraînement", icon: Target },
   { href: "/predictions", label: "Prédictions", icon: Timer },
+  { href: "/nutrition", label: "Nutrition", icon: UtensilsCrossed },
 ];
 
 export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {

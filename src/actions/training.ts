@@ -654,7 +654,7 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
   const ai = new GoogleGenAI({ apiKey });
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
     config: {
       systemInstruction: getCreateSystemPrompt(input.planningMode),
@@ -1512,7 +1512,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
 
   const response = await withRetry(() =>
     ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         systemInstruction: getUpdateSystemPrompt(planningMode),

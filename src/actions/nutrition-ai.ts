@@ -84,7 +84,7 @@ export async function analyzePhoto(
     const ai = getAI();
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [
         {
           role: "user",
@@ -324,7 +324,7 @@ Données à analyser :
 ${JSON.stringify(context, null, 2)}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         systemInstruction: NUTRITION_COACHING_PROMPT,
@@ -448,7 +448,7 @@ Fournis :
 Réponds en français, de manière concise.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         temperature: 0.5,

@@ -201,7 +201,7 @@ ${JSON.stringify(healthSummary, null, 2)}
 ${planContext ? `## Plan d'entraînement actif\n${JSON.stringify(planContext, null, 2)}` : "Aucun plan d'entraînement actif."}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         systemInstruction: GLOBAL_COACHING_PROMPT,
@@ -376,7 +376,7 @@ ${JSON.stringify(userProfile, null, 2)}
 ${JSON.stringify(context, null, 2)}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         systemInstruction: ACTIVITY_SYSTEM_PROMPT,
@@ -391,7 +391,7 @@ ${JSON.stringify(context, null, 2)}`;
       data: {
         activityId: activity.id,
         analysis: analysisText,
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
       },
     });
 
@@ -575,7 +575,7 @@ ${JSON.stringify(activitySummary, null, 2)}
 - FC max : ${user.maxHR ?? "N/A"} bpm`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         systemInstruction: HRV_ANALYSIS_PROMPT,
@@ -595,7 +595,7 @@ ${JSON.stringify(activitySummary, null, 2)}
       },
       update: {
         analysis,
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
         periodStart,
         periodEnd,
         dataPointsCount: sleepData.length,
@@ -605,7 +605,7 @@ ${JSON.stringify(activitySummary, null, 2)}
         userId: user.id,
         pageType: "hrv",
         analysis,
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
         periodStart,
         periodEnd,
         dataPointsCount: sleepData.length,
@@ -856,7 +856,7 @@ ${JSON.stringify(activitySummary, null, 2)}
 - FC max : ${user.maxHR ?? "N/A"} bpm`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         systemInstruction: STRESS_ANALYSIS_PROMPT,
@@ -875,7 +875,7 @@ ${JSON.stringify(activitySummary, null, 2)}
       },
       update: {
         analysis,
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
         periodStart,
         periodEnd,
         dataPointsCount: totalDataPoints,
@@ -885,7 +885,7 @@ ${JSON.stringify(activitySummary, null, 2)}
         userId: user.id,
         pageType: "stress",
         analysis,
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
         periodStart,
         periodEnd,
         dataPointsCount: totalDataPoints,
@@ -1151,7 +1151,7 @@ ${JSON.stringify(activitySummary, null, 2)}
 - FC max : ${user.maxHR ?? "N/A"} bpm`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       contents: prompt,
       config: {
         systemInstruction: SLEEP_ANALYSIS_PROMPT,
@@ -1170,7 +1170,7 @@ ${JSON.stringify(activitySummary, null, 2)}
       },
       update: {
         analysis,
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
         periodStart,
         periodEnd,
         dataPointsCount: withSleep.length,
@@ -1180,7 +1180,7 @@ ${JSON.stringify(activitySummary, null, 2)}
         userId: user.id,
         pageType: "sleep",
         analysis,
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
         periodStart,
         periodEnd,
         dataPointsCount: withSleep.length,
