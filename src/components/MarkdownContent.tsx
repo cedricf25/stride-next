@@ -155,7 +155,24 @@ function parseSections(text: string): { intro: string; sections: Section[] } {
     sections.push(currentSection);
   }
 
-  return { intro: intro.trim(), sections };
+  // Merge sub-items back into parent section when numbering restarts
+  // e.g. sections [1,2,3,4,5,6,7, 1,2,3, 8] → sub-items 1,2,3 merge into section 7
+  const merged: Section[] = [];
+  for (let i = 0; i < sections.length; i++) {
+    const prev = merged[merged.length - 1];
+    if (prev && sections[i].number <= prev.number) {
+      // This is a sub-item: convert to bullet in parent content
+      const subTitle = sections[i].title;
+      const subDesc = sections[i].subtitle || sections[i].content;
+      const extra = sections[i].subtitle ? sections[i].content : "";
+      prev.content += `\n* **${subTitle}** : ${subDesc}`;
+      if (extra) prev.content += `\n${extra}`;
+    } else {
+      merged.push(sections[i]);
+    }
+  }
+
+  return { intro: intro.trim(), sections: merged };
 }
 
 // --- Markdown to HTML ---
@@ -244,22 +261,23 @@ export default function MarkdownContent({ content }: { content: string }) {
                 <h3 className={`font-semibold ${theme.text}`}>
                   {section.title}
                 </h3>
-                {section.subtitle && (
-                  <span className={`text-sm ${theme.text} opacity-70`}>
-                    — {section.subtitle}
-                  </span>
-                )}
               </div>
             </div>
 
             {/* Section content */}
-            {section.content && (
-              <div
-                className="px-5 py-4"
-                dangerouslySetInnerHTML={{
-                  __html: formatContent(section.content),
-                }}
-              />
+            {(section.subtitle || section.content) && (
+              <div className="px-5 py-4">
+                {section.subtitle && (
+                  <p className="mb-2 text-[var(--text-secondary)] leading-relaxed">{section.subtitle}</p>
+                )}
+                {section.content && (
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: formatContent(section.content),
+                    }}
+                  />
+                )}
+              </div>
             )}
           </div>
         );
