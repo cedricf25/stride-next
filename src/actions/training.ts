@@ -474,14 +474,18 @@ Règles :
 - Inclus des jours de repos
 
 Règles RENFORCEMENT MUSCULAIRE (si demandé) :
-- Ajoute le nombre exact de séances "strength" demandées par semaine, EN PLUS des séances de course
+- CRITIQUE : génère EXACTEMENT le nombre de séances de course demandé + EXACTEMENT le nombre de séances strength demandé.
+  Si 3 courses + 2 renforcements → la semaine DOIT contenir 3 sessions course (easy/tempo/interval/long_run/recovery) ET 2 sessions strength = 5 sessions total.
+  Si 4 courses + 3 renforcements → 4 sessions course ET 3 sessions strength = 7 sessions total.
+  NE JAMAIS remplacer une course par un renforcement. Les deux sont indépendants.
+- Les séances de renforcement PEUVENT être placées le même jour qu'une séance facile (EF) ou récupération. Dans ce cas, génère les deux séances séparées le même jour.
+- Ne PAS placer de renforcement le même jour qu'une séance intensive (fractionné, tempo, sortie longue)
 - Adapte les exercices au type de course : gainage/proprioception pour trail, plyométrie pour 10km, endurance musculaire pour marathon
 - Le champ "description" doit résumer la séance en une phrase courte
 - Le champ "exercises" est OBLIGATOIRE pour chaque séance strength : tableau d'exercices avec name, sets, reps, tip
 - Utilise des noms d'exercices standards et reconnus (ex: "Squats", "Fentes bulgares", "Planche", "Pompes", "Chaise", "Gainage latéral")
 - Le champ "tip" doit donner un conseil d'exécution concret (posture, erreur à éviter)
 - Le champ "duration" indique la durée en minutes (typiquement 20-40 min)
-- Place les séances de renforcement sur des jours différents des séances intensives (fractionné, tempo)
 - Progresse dans la difficulté au fil des semaines (volume → intensité → spécificité)
 - En phase d'affûtage, réduis le renforcement (maintien uniquement)
 - 4 à 8 exercices par séance
@@ -678,9 +682,10 @@ Génère un plan d'entraînement avec ces paramètres :
 ${input.targetDistance ? `- Distance cible : ${input.targetDistance} km` : ""}
 ${input.targetElevation ? `- D+ cible : ${input.targetElevation} m` : ""}
 ${input.targetTime ? `- Objectif chrono : ${input.targetTime}` : ""}
-- Jours d'entraînement par semaine : ${input.daysPerWeek}
+- Séances de COURSE par semaine : ${input.daysPerWeek} (c'est le nombre de séances de type easy/tempo/interval/long_run/recovery, PAS le total)
 - Jour de sortie longue : ${input.longRunDay}
-${input.includeStrength ? `- Renforcement musculaire : OUI, ${input.strengthFrequency ?? 2} séance(s) par semaine (sessionType: "strength")` : ""}
+${input.includeStrength ? `- Séances de RENFORCEMENT MUSCULAIRE par semaine : ${input.strengthFrequency ?? 2} (sessionType: "strength", EN PLUS des ${input.daysPerWeek} séances de course)
+- TOTAL de séances par semaine : ${input.daysPerWeek} courses + ${input.strengthFrequency ?? 2} renforcements = ${input.daysPerWeek + (input.strengthFrequency ?? 2)} séances` : ""}
 - Durée totale du plan : ${totalWeeks} semaines
 ${pastWeeks > 0 ? `- Semaines déjà écoulées : ${pastWeeks} (les semaines 1 à ${pastWeeks} sont dans le passé, génère-les quand même pour montrer la progression rétrospective)` : ""}
 ${pastActivitiesSummary}
