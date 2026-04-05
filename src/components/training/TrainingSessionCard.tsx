@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, MoreVertical, Clock, Ruler, Upload, Loader2 } from "lucide-react";
+import { ExternalLink, MoreVertical, Clock, Ruler, Upload, Loader2, Mountain, TreePine } from "lucide-react";
 import { toggleSessionCompleted, updateSessionDisplayMode } from "@/actions/training";
 import { exportSessionToGarmin } from "@/actions/garmin-export";
 
@@ -31,6 +31,8 @@ interface Props {
     intensity: string;
     displayMode: string | null;
     workoutSummary: string | null;
+    elevationGain: number | null;
+    terrainType: string | null;
     completed: boolean;
     linkedActivityId: string | null;
     linkedActivity: LinkedActivity | null;
@@ -206,6 +208,19 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
           {session.workoutSummary && (
             <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
               {session.workoutSummary}
+            </span>
+          )}
+          {/* Badges trail : D+ et terrain */}
+          {session.elevationGain != null && session.elevationGain > 0 && (
+            <span className="flex items-center gap-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+              <Mountain className="h-3 w-3" />
+              {session.elevationGain}m D+
+            </span>
+          )}
+          {session.terrainType && session.terrainType !== "route" && (
+            <span className="flex items-center gap-0.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+              <TreePine className="h-3 w-3" />
+              {session.terrainType}
             </span>
           )}
           {session.matchScore !== null && (

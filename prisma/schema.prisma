@@ -408,6 +408,8 @@ model TrainingSession {
   intensity       String   @default("moderate") // "low", "moderate", "high", "very_high"
   displayMode     String?  // "time" ou "distance" - override individuel (null = utilise planningMode du plan)
   workoutSummary  String?  // Résumé court pour intervalles: "3×10' Z4", "8×400m", "2×(6×200m)"
+  elevationGain   Int?     // D+ en mètres (trail uniquement)
+  terrainType     String?  // "route", "chemin", "sentier technique", "montagne", etc.
   completed       Boolean  @default(false)
 
   // Lien vers l'activité réelle correspondante

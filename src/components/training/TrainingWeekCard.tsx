@@ -28,6 +28,8 @@ interface Session {
   intensity: string;
   displayMode: string | null;
   workoutSummary: string | null;
+  elevationGain: number | null;
+  terrainType: string | null;
   completed: boolean;
   linkedActivityId: string | null;
   linkedActivity: LinkedActivity | null;

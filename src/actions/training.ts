@@ -86,6 +86,8 @@ async function createPlanSnapshot(
         targetHRZone: s.targetHRZone,
         intensity: s.intensity,
         workoutSummary: s.workoutSummary,
+        elevationGain: s.elevationGain,
+        terrainType: s.terrainType,
       })),
     })),
   };
@@ -436,7 +438,9 @@ function getSessionSchema(planningMode: "time" | "distance"): string {
   "targetPace": "string|null - ex: 5:30/km",
   "targetHRZone": "string|null - ex: Z2, Z3-Z4",
   "intensity": "low|moderate|high|very_high",
-  "workoutSummary": "string|null - résumé court AVEC récup : 8×400m r=1'30, 3×10' Z4 r=3', 2×(6×200m r=30s) R=3', null si séance simple"
+  "workoutSummary": "string|null - résumé court AVEC récup : 8×400m r=1'30, 3×10' Z4 r=3', 2×(6×200m r=30s) R=3', null si séance simple",
+  "elevationGain": "number|null - D+ en mètres, OBLIGATOIRE pour les plans trail (même 0 pour une séance plate)",
+  "terrainType": "string|null - type de terrain : route, chemin, sentier, sentier technique, montagne, piste. OBLIGATOIRE pour les plans trail"
 }`;
 }
 
@@ -463,7 +467,15 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
 Règles :
 - Respecte le nombre de jours d'entraînement demandé
 - Place la sortie longue le jour demandé
-- Inclus des jours de repos`;
+- Inclus des jours de repos
+
+Règles spécifiques TRAIL (si raceType contient "trail") :
+- OBLIGATOIRE : renseigne "elevationGain" (D+ en mètres) et "terrainType" pour CHAQUE séance non-repos
+- Répartis le D+ cible total intelligemment sur les semaines (progressif)
+- Varie les terrains : route (récup/tempo plat), chemin (EF vallonné), sentier (SL trail), sentier technique (spécifique descente), montagne (côtes raides)
+- Inclus des séances spécifiques trail : côtes, descente technique, dénivelé positif soutenu
+- Le workoutSummary pour les séances de côtes doit mentionner la pente : ex "3×8' côte r=3' descente", "6×3' côte raide (>15%) r=descente"
+- targetPace en trail doit être adapté au terrain (plus lent en sentier technique qu'en chemin)`;
 }
 
 function getUpdateSystemPrompt(planningMode: "time" | "distance"): string {
@@ -510,7 +522,11 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
 changeReason :
 - null = séance identique, aucune modification
 - Exemples valides : "easy → interval car TE aérobie 4.5 (course du 15/02)", "45min → 30min car FC moy 165bpm"
-- INTERDIT : raisons génériques sans données ("Initialisation", "Optimisation", "Adaptation")`;
+- INTERDIT : raisons génériques sans données ("Initialisation", "Optimisation", "Adaptation")
+
+Règles spécifiques TRAIL (si raceType contient "trail") :
+- Conserve les champs "elevationGain" et "terrainType" pour chaque séance non-repos
+- Si tu modifies une séance, adapte aussi son D+ et terrain si pertinent`;
 }
 
 export async function generateTrainingPlan(input: TrainingPlanInput) {
@@ -705,6 +721,8 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
               targetHRZone: session.targetHRZone ?? null,
               intensity: session.intensity ?? "moderate",
               workoutSummary: session.workoutSummary ?? null,
+              elevationGain: session.elevationGain ?? null,
+              terrainType: session.terrainType ?? null,
               completed: isPastWeek,
             },
           });
@@ -1730,6 +1748,8 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
               targetHRZone: session?.targetHRZone ?? null,
               intensity: session?.intensity ?? "moderate",
               workoutSummary: session?.workoutSummary ?? null,
+              elevationGain: session?.elevationGain ?? null,
+              terrainType: session?.terrainType ?? null,
               completed: isPastWeek,
             },
           });
@@ -1764,6 +1784,8 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
               targetHRZone: existingSession.targetHRZone,
               intensity: existingSession.intensity,
               workoutSummary: existingSession.workoutSummary,
+              elevationGain: existingSession.elevationGain,
+              terrainType: existingSession.terrainType,
               changeReason: null,
             });
 
@@ -1780,6 +1802,8 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
                 targetHRZone: existingSession.targetHRZone,
                 intensity: existingSession.intensity,
                 workoutSummary: existingSession.workoutSummary,
+                elevationGain: existingSession.elevationGain,
+                terrainType: existingSession.terrainType,
                 completed: isPastWeek || existingSession.completed,
               },
             });
@@ -1844,6 +1868,8 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
       targetHRZone: s.targetHRZone,
       intensity: s.intensity,
       workoutSummary: s.workoutSummary,
+      elevationGain: s.elevationGain,
+      terrainType: s.terrainType,
     })),
   }));
 
@@ -1863,6 +1889,8 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
       targetHRZone: s.targetHRZone ?? null,
       intensity: s.intensity ?? "moderate",
       workoutSummary: s.workoutSummary ?? null,
+      elevationGain: s.elevationGain ?? null,
+      terrainType: s.terrainType ?? null,
       changeReason: s.changeReason ?? undefined,
     })),
   }));
@@ -2033,6 +2061,8 @@ export async function restorePlanVersion(planId: string, versionNumber: number) 
           targetHRZone: sessionData.targetHRZone,
           intensity: sessionData.intensity,
           workoutSummary: sessionData.workoutSummary ?? null,
+          elevationGain: sessionData.elevationGain ?? null,
+          terrainType: sessionData.terrainType ?? null,
           completed: isPastWeek,
         },
       });
@@ -2204,6 +2234,8 @@ export async function setDefaultVersion(planId: string, versionNumber: number) {
           targetHRZone: sessionData.targetHRZone,
           intensity: sessionData.intensity,
           workoutSummary: sessionData.workoutSummary ?? null,
+          elevationGain: sessionData.elevationGain ?? null,
+          terrainType: sessionData.terrainType ?? null,
           completed: isPastWeek,
         },
       });
