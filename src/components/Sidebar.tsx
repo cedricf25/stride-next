@@ -37,7 +37,7 @@ export default function Sidebar({ lastSyncAt }: { lastSyncAt: string | null }) {
           fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-72 flex-col
           border-r border-[var(--border-default)] bg-[var(--bg-surface)]
           transform transition-transform duration-300 ease-in-out
-          md:static md:h-screen md:w-60 md:translate-x-0
+          md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0 md:translate-x-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
