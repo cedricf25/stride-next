@@ -643,9 +643,16 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
 
       if (Array.isArray(week.sessions)) {
         for (const genSession of week.sessions) {
-          const session = mergeSession(correctWeekNumber, genSession);
-          mergedSessions.push(session ?? genSession);
-          generatedDays.add((session?.dayOfWeek ?? genSession.dayOfWeek ?? "").toLowerCase());
+          // Normaliser exercises (l'IA peut renvoyer un tableau d'objets au lieu d'un string)
+          const normalizedSession: MergedSession = {
+            ...genSession,
+            exercises: genSession.exercises
+              ? (typeof genSession.exercises === "string" ? genSession.exercises : JSON.stringify(genSession.exercises))
+              : null,
+          };
+          const session = mergeSession(correctWeekNumber, normalizedSession);
+          mergedSessions.push(session ?? normalizedSession);
+          generatedDays.add((session?.dayOfWeek ?? normalizedSession.dayOfWeek ?? "").toLowerCase());
 
           await prisma.trainingSession.create({
             data: {
