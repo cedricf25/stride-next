@@ -297,7 +297,7 @@ RAPPEL FINAL : génère les ${totalWeeks} semaines complètes (de la semaine 1 �
   const ai = new GoogleGenAI({ apiKey });
 
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-flash-lite-preview",
+    model: "gemini-3.1-pro-preview",
     contents: prompt,
     config: {
       systemInstruction: getCreateSystemPrompt(input.planningMode),

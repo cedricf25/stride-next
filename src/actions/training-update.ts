@@ -419,7 +419,7 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
 
   const response = await withRetry(() =>
     ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-3.1-pro-preview",
       contents: prompt,
       config: {
         systemInstruction: getUpdateSystemPrompt(planningMode),
