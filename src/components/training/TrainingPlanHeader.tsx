@@ -10,6 +10,7 @@ interface Props {
     startDate: Date | null;
     targetTime: string | null;
     daysPerWeek: number;
+    trainingDays: string | null;
     longRunDay: string;
     status: string;
     goalProbability: number | null;
@@ -72,7 +73,11 @@ export default function TrainingPlanHeader({ plan }: Props) {
             Objectif : {plan.targetTime}
           </span>
         )}
-        <span>{plan.daysPerWeek} jours/semaine</span>
+        <span className="capitalize">
+          {plan.trainingDays
+            ? (JSON.parse(plan.trainingDays) as string[]).join(", ")
+            : `${plan.daysPerWeek} jours/semaine`}
+        </span>
         <span className="capitalize">Sortie longue : {plan.longRunDay}</span>
       </div>
 

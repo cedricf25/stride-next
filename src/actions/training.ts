@@ -418,7 +418,7 @@ export interface TrainingPlanInput {
   targetDistance?: number;
   targetElevation?: number;
   targetTime?: string;
-  daysPerWeek: number;
+  trainingDays: string[];
   longRunDay: string;
   planningMode: "time" | "distance";
   includeStrength?: boolean;
@@ -470,17 +470,16 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
 }
 
 Règles :
-- Respecte le nombre de jours d'entraînement demandé
+- CRITIQUE : génère TOUTES les semaines demandées. Si le plan fait 8 semaines, le JSON DOIT contenir 8 objets dans "weeks". Ne jamais s'arrêter avant.
+- Place les séances de course UNIQUEMENT sur les jours spécifiques demandés par l'athlète
 - Place la sortie longue le jour demandé
-- Inclus des jours de repos
+- Les jours non sélectionnés pour la course sont des jours de repos (ou renforcement musculaire si demandé)
 
 Règles RENFORCEMENT MUSCULAIRE (si demandé) :
-- CRITIQUE : génère EXACTEMENT le nombre de séances de course demandé + EXACTEMENT le nombre de séances strength demandé.
-  Si 3 courses + 2 renforcements → la semaine DOIT contenir 3 sessions course (easy/tempo/interval/long_run/recovery) ET 2 sessions strength = 5 sessions total.
-  Si 4 courses + 3 renforcements → 4 sessions course ET 3 sessions strength = 7 sessions total.
-  NE JAMAIS remplacer une course par un renforcement. Les deux sont indépendants.
-- Les séances de renforcement PEUVENT être placées le même jour qu'une séance facile (EF) ou récupération. Dans ce cas, génère les deux séances séparées le même jour.
-- Ne PAS placer de renforcement le même jour qu'une séance intensive (fractionné, tempo, sortie longue)
+- CRITIQUE : génère EXACTEMENT le nombre de séances strength demandé, sur les jours LIBRES (hors jours de course)
+- NE JAMAIS remplacer une séance de course par du renforcement. Les deux sont sur des jours différents.
+- Les jours restants (ni course, ni renforcement) sont des jours de REPOS
+- Si tous les 7 jours sont pris par la course, ne génère PAS de renforcement (préviens dans goalAssessment)
 - Adapte les exercices au type de course : gainage/proprioception pour trail, plyométrie pour 10km, endurance musculaire pour marathon
 - Le champ "description" doit résumer la séance en une phrase courte
 - Le champ "exercises" est OBLIGATOIRE pour chaque séance strength : tableau d'exercices avec name, sets, reps, tip
@@ -497,7 +496,8 @@ Règles spécifiques TRAIL (si raceType contient "trail") :
 - Varie les terrains : route (récup/tempo plat), chemin (EF vallonné), sentier (SL trail), sentier technique (spécifique descente), montagne (côtes raides)
 - Inclus des séances spécifiques trail : côtes, descente technique, dénivelé positif soutenu
 - Le workoutSummary pour les séances de côtes doit mentionner la pente : ex "3×8' côte r=3' descente", "6×3' côte raide (>15%) r=descente"
-- targetPace en trail doit être adapté au terrain (plus lent en sentier technique qu'en chemin)`;
+- targetPace en trail doit être adapté au terrain (plus lent en sentier technique qu'en chemin)
+- ESTIMATION DE TEMPS : en trail l'utilisateur ne fournit PAS d'objectif chrono. Tu DOIS estimer un temps cible réaliste dans "goalAssessment" en te basant sur : distance, D+, profil du coureur (VO2max, allure moyenne, poids), et le terrain. Utilise la formule indicative : ajoute environ 1 min/km par tranche de 100m D+/km en plus de l'allure route. Indique l'estimation sous la forme "Temps estimé : Xh XX - Xh XX" dans goalAssessment.`;
 }
 
 function getUpdateSystemPrompt(planningMode: "time" | "distance"): string {
@@ -505,13 +505,27 @@ function getUpdateSystemPrompt(planningMode: "time" | "distance"): string {
 
 ${getModeInstruction(planningMode)}
 
-STABILITÉ MAXIMALE : conserve le plan IDENTIQUE sauf si une activité récente justifie un ajustement.
+RÈGLE N°1 — STABILITÉ : ton rôle est d'AJUSTER le plan existant, PAS de le réécrire.
+- Le plan original (structure, types de séances, progression, thèmes) DOIT rester le même
+- Tu ne modifies QUE l'intensité ou le volume de certaines séances, jamais la structure globale
+- NE CHANGE PAS les types de séances (ex: ne transforme pas un easy en interval)
+- NE CHANGE PAS les jours attribués
+- NE CHANGE PAS les thèmes de semaine
 - Max 2-3 séances modifiées par mise à jour
-- Modifier uniquement si signaux clairs :
-  • Surcharge (réalisé > prévu) : TE > 4.5, FC > 90% FCmax, ou distance/durée réalisée > prévu de +20% → RÉDUIRE les 2-3 jours suivants de 10-15%
-  • Sous-charge (réalisé < prévu) : TE < 2.0, ou distance/durée réalisée < prévu de -20% → AUGMENTER légèrement de 5-10%
-  • LOGIQUE IMPORTANTE : si l'athlète fait MOINS que prévu → augmenter ou maintenir, si l'athlète fait PLUS que prévu → réduire
-- Sans signal problématique → 0 modification
+
+RÈGLE N°2 — ADAPTATION BASÉE SUR LA FATIGUE :
+Le seul critère de modification est l'état de fatigue/forme de l'athlète :
+- SIGNES DE FATIGUE (→ réduire volume/intensité de 10-15% sur les 2-3 prochaines séances) :
+  • TE aérobie > 4.5 sur une séance facile
+  • FC moyenne > 85% FCmax sur une séance facile/modérée
+  • Distance ou durée réalisée bien inférieure au prévu (l'athlète n'a pas pu finir)
+  • Plusieurs séances non réalisées ou écourtées
+- SIGNES DE FORME (→ augmenter légèrement de 5-10%) :
+  • TE < 2.0 sur des séances modérées
+  • FC bien en dessous des zones cibles
+  • L'athlète dépasse régulièrement les séances prévues sans signe de surcharge
+- PAS DE SIGNAL CLAIR → 0 modification, retourne le plan tel quel
+
 - Adaptation PROGRESSIVE : ne jamais changer brutalement (ex: passer de 10km à 15km d'un coup)
 
 Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
@@ -567,7 +581,8 @@ export async function generateTrainingPlan(input: TrainingPlanInput) {
       targetDistance: input.targetDistance ?? null,
       targetElevation: input.targetElevation ?? null,
       targetTime: input.targetTime ?? null,
-      daysPerWeek: input.daysPerWeek,
+      daysPerWeek: input.trainingDays.length,
+      trainingDays: JSON.stringify(input.trainingDays),
       longRunDay: input.longRunDay,
       planningMode: input.planningMode,
       includeStrength: input.includeStrength ?? false,
@@ -682,16 +697,20 @@ Génère un plan d'entraînement avec ces paramètres :
 - Type de course : ${input.raceType}
 ${input.targetDistance ? `- Distance cible : ${input.targetDistance} km` : ""}
 ${input.targetElevation ? `- D+ cible : ${input.targetElevation} m` : ""}
-${input.targetTime ? `- Objectif chrono : ${input.targetTime}` : ""}
-- Séances de COURSE par semaine : ${input.daysPerWeek} (c'est le nombre de séances de type easy/tempo/interval/long_run/recovery, PAS le total)
+${input.raceType === "trail" ? `- PAS d'objectif chrono fourni : estime un temps cible réaliste dans goalAssessment à partir du profil, de la distance et du D+` : input.targetTime ? `- Objectif chrono : ${input.targetTime}` : ""}
+- Jours de COURSE choisis par l'athlète : ${input.trainingDays.join(", ")} (${input.trainingDays.length} jours)
+- IMPORTANT : place les séances de course UNIQUEMENT sur ces jours précis. Respecte les jours choisis par l'athlète.
 - Jour de sortie longue : ${input.longRunDay}
-${input.includeStrength ? `- Séances de RENFORCEMENT MUSCULAIRE par semaine : ${input.strengthFrequency ?? 2} (sessionType: "strength", EN PLUS des ${input.daysPerWeek} séances de course)
-- TOTAL de séances par semaine : ${input.daysPerWeek} courses + ${input.strengthFrequency ?? 2} renforcements = ${input.daysPerWeek + (input.strengthFrequency ?? 2)} séances` : ""}
-- Durée totale du plan : ${totalWeeks} semaines
+${input.includeStrength ? `- Séances de RENFORCEMENT MUSCULAIRE : ${input.strengthFrequency ?? 2} par semaine (sessionType: "strength"), à placer sur les jours LIBRES (hors jours de course). Jours disponibles : ${["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"].filter(d => !input.trainingDays.includes(d)).join(", ") || "aucun"}
+- Les jours restants sont des jours de REPOS.` : ""}
+- Durée totale du plan : EXACTEMENT ${totalWeeks} semaines (semaine 1 à semaine ${totalWeeks})
+- CRITIQUE : le tableau "weeks" DOIT contenir EXACTEMENT ${totalWeeks} éléments, numérotés de 1 à ${totalWeeks}. Un plan incomplet est INVALIDE.
 ${pastWeeks > 0 ? `- Semaines déjà écoulées : ${pastWeeks} (les semaines 1 à ${pastWeeks} sont dans le passé, génère-les quand même pour montrer la progression rétrospective)` : ""}
 ${pastActivitiesSummary}
 Profil du coureur :
-${JSON.stringify(fitnessContext, null, 2)}`;
+${JSON.stringify(fitnessContext, null, 2)}
+
+RAPPEL FINAL : génère les ${totalWeeks} semaines complètes (de la semaine 1 à la semaine ${totalWeeks}). Ne t'arrête PAS avant.`;
 
   const ai = new GoogleGenAI({ apiKey });
 
@@ -701,6 +720,7 @@ ${JSON.stringify(fitnessContext, null, 2)}`;
     config: {
       systemInstruction: getCreateSystemPrompt(input.planningMode),
       responseMimeType: "application/json",
+      maxOutputTokens: 65536,
       temperature: 0.7,
     },
   });
@@ -1504,7 +1524,7 @@ Plan :
 - Type de course : ${plan.raceType}
 ${plan.targetTime ? `- Objectif chrono : ${plan.targetTime}` : ""}
 ${plan.raceDate ? `- Date de course : ${new Date(plan.raceDate).toLocaleDateString("fr-FR")}` : ""}
-- Jours d'entraînement par semaine : ${plan.daysPerWeek}
+- Jours de course : ${plan.trainingDays ? JSON.parse(plan.trainingDays).join(", ") : `${plan.daysPerWeek} jours/semaine`}
 - Jour de sortie longue : ${plan.longRunDay}
 - Durée totale du plan : ${totalWeeksToGenerate} semaines
 - Semaines déjà écoulées : ${pastWeeks} (les semaines 1 à ${pastWeeks} sont dans le passé, génère-les quand même pour montrer la progression rétrospective)
@@ -1531,16 +1551,20 @@ Plan :
 - Type de course : ${plan.raceType}
 ${plan.targetTime ? `- Objectif chrono : ${plan.targetTime}` : ""}
 ${plan.raceDate ? `- Date de course : ${new Date(plan.raceDate).toLocaleDateString("fr-FR")}` : ""}
-- Jours d'entraînement par semaine : ${plan.daysPerWeek}
+- Jours de course : ${plan.trainingDays ? JSON.parse(plan.trainingDays).join(", ") : `${plan.daysPerWeek} jours/semaine`}
 - Jour de sortie longue : ${plan.longRunDay}
 
 Semaines passées (pour contexte, NE PAS régénérer) :
 ${JSON.stringify(completedSummary, null, 2)}
 
-PLAN EXISTANT (JSON) - COPIE CES VALEURS EXACTEMENT :
+PLAN EXISTANT (JSON) — C'EST LA RÉFÉRENCE, COPIE-LE TEL QUEL SAUF AJUSTEMENT FATIGUE :
 ${existingWeeksJSON}
 
-INSTRUCTION CRITIQUE : Retourne ce JSON tel quel. Ne modifie une valeur QUE si le profil du coureur justifie un changement. Si tu modifies, mets changeReason explicatif. Sinon changeReason = null.
+INSTRUCTION CRITIQUE :
+- Retourne ce JSON IDENTIQUE par défaut (mêmes séances, mêmes jours, mêmes types, mêmes thèmes)
+- Modifie UNIQUEMENT le volume (distance/durée) ou l'intensité de 2-3 séances SI les données de fatigue le justifient
+- Ne change JAMAIS le type de séance, le jour, ou la structure du plan
+- changeReason = null si aucune modification, sinon format : "[ancien] → [nouveau] car [données chiffrées de fatigue]"
 
 Profil actuel du coureur :
 - Volume hebdo : ${weeklyVolume.toFixed(1)} km
@@ -1550,7 +1574,7 @@ Profil actuel du coureur :
 - FC max : ${plan.user.maxHR ?? "N/A"}
 ${newActivitiesSummary}
 Génère les semaines ${currentWeekNumber} à ${currentWeekNumber + totalWeeksToGenerate - 1}.
-Adapte la charge en fonction de la progression réelle du coureur et des activités récentes.`;
+Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de fatigue, retourne le plan SANS modification.`;
   }
 
   const ai = new GoogleGenAI({ apiKey });

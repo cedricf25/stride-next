@@ -5,7 +5,7 @@ export interface TrainingPlanFormState {
   targetDistance: string;
   targetElevation: string;
   targetTime: string;
-  daysPerWeek: number;
+  trainingDays: string[];
   longRunDay: string;
   planningMode: "time" | "distance";
   includeStrength: boolean;
@@ -21,7 +21,7 @@ export const initialState: TrainingPlanFormState = {
   targetDistance: "",
   targetElevation: "",
   targetTime: "",
-  daysPerWeek: 4,
+  trainingDays: ["mardi", "jeudi", "samedi", "dimanche"],
   longRunDay: "dimanche",
   planningMode: "time",
   includeStrength: false,
@@ -31,8 +31,9 @@ export const initialState: TrainingPlanFormState = {
 };
 
 export type TrainingPlanFormAction =
-  | { type: "SET_FIELD"; field: keyof TrainingPlanFormState; value: string | number | boolean }
+  | { type: "SET_FIELD"; field: keyof TrainingPlanFormState; value: string | number | boolean | string[] }
   | { type: "SET_RACE_TYPE"; value: string }
+  | { type: "TOGGLE_TRAINING_DAY"; day: string }
   | { type: "SET_LOADING"; value: boolean }
   | { type: "SET_ERROR"; value: string }
   | { type: "RESET" };
@@ -50,6 +51,22 @@ export function trainingPlanFormReducer(
         raceType: action.value,
         ...(action.value !== "trail" ? { targetDistance: "", targetElevation: "" } : {}),
       };
+    case "TOGGLE_TRAINING_DAY": {
+      const day = action.day;
+      // Ne pas désélectionner le jour de sortie longue
+      if (day === state.longRunDay && state.trainingDays.includes(day)) {
+        return state;
+      }
+      const days = state.trainingDays.includes(day)
+        ? state.trainingDays.filter((d) => d !== day)
+        : [...state.trainingDays, day];
+      const maxStrength = 7 - days.length;
+      return {
+        ...state,
+        trainingDays: days,
+        strengthFrequency: Math.min(state.strengthFrequency, maxStrength),
+      };
+    }
     case "SET_LOADING":
       return { ...state, loading: action.value };
     case "SET_ERROR":

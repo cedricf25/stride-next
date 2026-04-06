@@ -164,7 +164,7 @@ export async function analyzeGlobalCoaching(): Promise<AnalysisResponse> {
         raceDate: activePlan.raceDate?.toISOString().split("T")[0],
         targetTime: activePlan.targetTime,
         progress: `${completed}/${totalSessions} séances`,
-        daysPerWeek: activePlan.daysPerWeek,
+        trainingDays: activePlan.trainingDays ? JSON.parse(activePlan.trainingDays) : activePlan.daysPerWeek,
       };
     }
 

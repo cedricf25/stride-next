@@ -334,6 +334,7 @@ model TrainingPlan {
   targetElevation     Float?   // D+ (pour trail)
   targetTime          String?  // objectif chrono
   daysPerWeek         Int
+  trainingDays        String?  @db.Text // JSON array des jours de course choisis, ex: ["lundi","mercredi","samedi"]
   longRunDay          String   // "lundi" → "dimanche"
   planningMode        String   @default("time") // "time" ou "distance" - mode de planification par défaut
   includeStrength     Boolean  @default(false)
