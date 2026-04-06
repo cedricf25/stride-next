@@ -276,6 +276,10 @@ export async function updateTrainingPlan(
       targetPace: s.targetPace,
       targetHRZone: s.targetHRZone,
       intensity: s.intensity,
+      workoutSummary: s.workoutSummary,
+      elevationGain: s.elevationGain,
+      terrainType: s.terrainType,
+      exercises: s.exercises ? JSON.parse(s.exercises) : null,
     })),
   })));
 
@@ -359,6 +363,9 @@ ${plan.targetTime ? `- Objectif chrono : ${plan.targetTime}` : ""}
 ${plan.raceDate ? `- Date de course : ${new Date(plan.raceDate).toLocaleDateString("fr-FR")}` : ""}
 - Jours de course : ${plan.trainingDays ? JSON.parse(plan.trainingDays).join(", ") : `${plan.daysPerWeek} jours/semaine`}
 - Jour de sortie longue : ${plan.longRunDay}
+${plan.targetDistance ? `- Distance cible : ${plan.targetDistance} km` : ""}
+${plan.targetElevation ? `- D+ cible : ${plan.targetElevation} m` : ""}
+${plan.includeStrength ? `- Renforcement musculaire : ${plan.strengthFrequency ?? 2} séances/semaine (sessionType: "strength") avec exercices détaillés` : ""}
 - Durée totale du plan : ${totalWeeksToGenerate} semaines
 - Semaines déjà écoulées : ${pastWeeks} (les semaines 1 à ${pastWeeks} sont dans le passé, génère-les quand même pour montrer la progression rétrospective)
 ${pastActivitiesSummary}
@@ -386,6 +393,9 @@ ${plan.targetTime ? `- Objectif chrono : ${plan.targetTime}` : ""}
 ${plan.raceDate ? `- Date de course : ${new Date(plan.raceDate).toLocaleDateString("fr-FR")}` : ""}
 - Jours de course : ${plan.trainingDays ? JSON.parse(plan.trainingDays).join(", ") : `${plan.daysPerWeek} jours/semaine`}
 - Jour de sortie longue : ${plan.longRunDay}
+${plan.targetDistance ? `- Distance cible : ${plan.targetDistance} km` : ""}
+${plan.targetElevation ? `- D+ cible : ${plan.targetElevation} m` : ""}
+${plan.includeStrength ? `- Renforcement musculaire : ${plan.strengthFrequency ?? 2} séances/semaine (sessionType: "strength") — CONSERVER ces séances avec leurs exercices` : ""}
 - goalProbability actuel : ${plan.goalProbability ?? "N/A"}
 - goalAssessment actuel : ${plan.goalAssessment ?? "N/A"}
 ${plan.targetTime ? `- Objectif/estimation chrono : ${plan.targetTime}` : ""}
@@ -449,6 +459,9 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
         targetHRZone?: string;
         intensity?: string;
         workoutSummary?: string | null;
+        elevationGain?: number | null;
+        terrainType?: string | null;
+        exercises?: Array<{ name: string; sets: number; reps: string; tip: string }> | null;
         changeReason?: string | null;
       }>;
     }>;
@@ -550,6 +563,9 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
         targetHRZone: genSession.targetHRZone ?? existing.targetHRZone,
         intensity: genSession.intensity ?? existing.intensity,
         workoutSummary: genSession.workoutSummary ?? existing.workoutSummary,
+        elevationGain: genSession.elevationGain ?? existing.elevationGain,
+        terrainType: genSession.terrainType ?? existing.terrainType,
+        exercises: genSession.exercises ?? existing.exercises,
         changeReason: genSession.changeReason,
       };
     }
@@ -566,6 +582,9 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
       targetHRZone: existing.targetHRZone,
       intensity: existing.intensity,
       workoutSummary: existing.workoutSummary,
+      elevationGain: existing.elevationGain,
+      terrainType: existing.terrainType,
+      exercises: existing.exercises,
       changeReason: null,
     };
   };
@@ -644,7 +663,9 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
               workoutSummary: session?.workoutSummary ?? null,
               elevationGain: session?.elevationGain ?? null,
               terrainType: session?.terrainType ?? null,
-              exercises: session?.exercises ? JSON.stringify(session.exercises) : null,
+              exercises: session?.exercises
+                ? (typeof session.exercises === "string" ? session.exercises : JSON.stringify(session.exercises))
+                : null,
               completed: isPastWeek,
             },
           });
