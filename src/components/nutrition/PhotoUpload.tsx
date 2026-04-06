@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, X, Sparkles, Save, Edit3 } from "lucide-react";
 import { analyzePhoto, createMealFromPhoto } from "@/actions/nutrition-ai";
@@ -39,14 +39,48 @@ export default function PhotoUpload({
     useState<PhotoAnalysisResult | null>(null);
   const [editableFoods, setEditableFoods] = useState<FoodInput[]>([]);
 
+  // Compresser et redimensionner l'image pour l'analyse IA
+  const compressImage = useCallback(
+    (file: File): Promise<{ base64: string; mime: string }> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_SIZE = 1280;
+          let { width, height } = img;
+
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          resolve({
+            base64: dataUrl.split(",")[1],
+            mime: "image/jpeg",
+          });
+        };
+        img.onerror = () => reject(new Error("Impossible de lire l'image"));
+        img.src = URL.createObjectURL(file);
+      });
+    },
+    []
+  );
+
   // Gestion de l'upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Vérifier la taille (max 4MB)
-    if (file.size > 4 * 1024 * 1024) {
-      setError("L'image est trop grande (max 4 Mo)");
+    // Vérifier la taille (max 10MB avant compression)
+    if (file.size > 10 * 1024 * 1024) {
+      setError("L'image est trop grande (max 10 Mo)");
       return;
     }
 
@@ -57,17 +91,16 @@ export default function PhotoUpload({
     }
 
     setError(null);
-    setMimeType(file.type);
 
-    // Convertir en base64
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1];
+    try {
+      const { base64, mime } = await compressImage(file);
+      setMimeType(mime);
       setImageData(base64);
       setAnalysisResult(null);
       setEditableFoods([]);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      setError("Erreur lors du traitement de l'image");
+    }
   };
 
   const clearImage = () => {
