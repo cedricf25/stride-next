@@ -69,7 +69,7 @@ export async function fetchHrvAnalysis(): Promise<HealthAnalysisResult> {
 export async function generateHrvAnalysis(): Promise<HealthAnalysisResult> {
   try {
     const user = await getAuthenticatedUser();
-    const ai = getAI();
+    const ai = await getAI();
 
     const now = new Date();
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000);
@@ -302,7 +302,7 @@ export async function fetchStressAnalysis(): Promise<HealthAnalysisResult> {
 export async function generateStressAnalysis(): Promise<HealthAnalysisResult> {
   try {
     const user = await getAuthenticatedUser();
-    const ai = getAI();
+    const ai = await getAI();
 
     const now = new Date();
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000);
@@ -573,7 +573,7 @@ export async function fetchSleepAnalysis(): Promise<HealthAnalysisResult> {
 export async function generateSleepAnalysis(): Promise<HealthAnalysisResult> {
   try {
     const user = await getAuthenticatedUser();
-    const ai = getAI();
+    const ai = await getAI();
 
     const now = new Date();
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000);

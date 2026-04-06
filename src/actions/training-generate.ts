@@ -82,7 +82,7 @@ Règles spécifiques TRAIL (si raceType contient "trail") :
 - ESTIMATION DE TEMPS : en trail l'utilisateur ne fournit PAS d'objectif chrono. Tu DOIS renseigner le champ "estimatedTime" avec une fourchette réaliste (ex: "5h30 - 6h15") basée sur : distance, D+, profil du coureur (VO2max, allure moyenne, poids). Formule indicative : ajoute environ 1 min/km par tranche de 100m D+/km en plus de l'allure route.`;
 }
 
-export function getUpdateSystemPrompt(planningMode: "time" | "distance"): string {
+export async function getUpdateSystemPrompt(planningMode: "time" | "distance"): Promise<string> {
   return `Tu es un coach expert en course à pied. Tu mets à jour un plan d'entraînement existant.
 
 ${getModeInstruction(planningMode)}

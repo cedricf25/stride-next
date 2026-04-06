@@ -417,12 +417,12 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
 
   const planningMode = ((plan as { planningMode?: string }).planningMode as "time" | "distance") || "time";
 
-  const response = await withRetry(() =>
+  const response = await withRetry(async () =>
     ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: prompt,
       config: {
-        systemInstruction: getUpdateSystemPrompt(planningMode),
+        systemInstruction: await getUpdateSystemPrompt(planningMode),
         responseMimeType: "application/json",
         temperature: 0,
       },
@@ -837,7 +837,7 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
       ...newSnapshot,
       weeks: newSnapshot.weeks.filter((w) => !completedWeekNumbers.has(w.weekNumber)),
     };
-    diff = computeVersionDiff(filteredPrevSnapshot, filteredNewSnapshot);
+    diff = await computeVersionDiff(filteredPrevSnapshot, filteredNewSnapshot);
   }
 
   // Create new version with changelog

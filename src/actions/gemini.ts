@@ -57,7 +57,7 @@ IMPORTANT pour les fractionnés :
 Sois précis, utilise les chiffres, et donne des conseils actionnables.
 Réponds en français.`;
 
-export function getAI() {
+export async function getAI() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY must be set in .env.local");
@@ -81,7 +81,7 @@ Réponds en français.`;
 export async function analyzeGlobalCoaching(): Promise<AnalysisResponse> {
   try {
     const user = await getAuthenticatedUser();
-    const ai = getAI();
+    const ai = await getAI();
 
     const now = new Date();
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 3600 * 1000);
@@ -277,7 +277,7 @@ export async function analyzeActivity(
       take: 16,
     });
 
-    const ai = getAI();
+    const ai = await getAI();
 
     const activityData = {
       name: activity.activityName,

@@ -14,14 +14,14 @@ import type {
 } from "@/types/predictions";
 
 // Helper pour calculer la moyenne d'un tableau de valeurs nullable
-export function average(values: (number | null | undefined)[]): number | null {
+export async function average(values: (number | null | undefined)[]): Promise<number | null> {
   const valid = values.filter((v): v is number => v != null);
   if (valid.length === 0) return null;
   return valid.reduce((a, b) => a + b, 0) / valid.length;
 }
 
 // Helper pour formater une allure en mm:ss /km
-export function formatPace(speedMs: number): string {
+export async function formatPace(speedMs: number): Promise<string> {
   if (speedMs <= 0) return "N/A";
   const secPerKm = 1000 / speedMs;
   const min = Math.floor(secPerKm / 60);
@@ -282,7 +282,7 @@ export async function fetchPersonalBests(): Promise<
 
       results[key] = {
         time,
-        pace: formatPace(best.averageSpeed),
+        pace: await formatPace(best.averageSpeed),
         date: best.startTimeLocal,
         activityId: best.id,
       };

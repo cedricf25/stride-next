@@ -126,23 +126,23 @@ export async function generatePredictions(): Promise<PredictionsResult> {
   const latestVO2max = recentActivities.find((a) => a.vo2max)?.vo2max ?? null;
 
   // Moyennes récupération 7j
-  const avgSleepScore7d = average(sleepRecords7d.map((s) => s.sleepScore));
-  const avgHRV7d = average(sleepRecords7d.map((s) => s.avgOvernightHRV));
-  const avgSleepHours7d = average(
+  const avgSleepScore7d = await average(sleepRecords7d.map((s) => s.sleepScore));
+  const avgHRV7d = await average(sleepRecords7d.map((s) => s.avgOvernightHRV));
+  const avgSleepHours7d = await average(
     sleepRecords7d.map((s) =>
       s.totalSleepSeconds ? s.totalSleepSeconds / 3600 : null
     )
   );
-  const avgStressLevel7d = average(healthMetrics7d.map((h) => h.stressLevel));
-  const avgBodyBattery7d = average(healthMetrics7d.map((h) => h.bodyBattery));
+  const avgStressLevel7d = await average(healthMetrics7d.map((h) => h.stressLevel));
+  const avgBodyBattery7d = await average(healthMetrics7d.map((h) => h.bodyBattery));
 
   // Charge d'entraînement
   const cumulativeTSS28d = last4Weeks.reduce(
     (sum, a) => sum + (a.trainingStressScore ?? 0),
     0
   );
-  const avgAerobicTE = average(last4Weeks.map((a) => a.aerobicTrainingEffect));
-  const avgAnaerobicTE = average(
+  const avgAerobicTE = await average(last4Weeks.map((a) => a.aerobicTrainingEffect));
+  const avgAnaerobicTE = await average(
     last4Weeks.map((a) => a.anaerobicTrainingEffect)
   );
 
@@ -192,7 +192,7 @@ export async function generatePredictions(): Promise<PredictionsResult> {
     avgHRV7d: avgHRV7d ? Math.round(avgHRV7d) : null,
     avgBodyBattery7d: avgBodyBattery7d ? Math.round(avgBodyBattery7d) : null,
     avgStressLevel7d: avgStressLevel7d ? Math.round(avgStressLevel7d) : null,
-    avgPace: avgSpeed > 0 ? formatPace(avgSpeed) : null,
+    avgPace: avgSpeed > 0 ? await formatPace(avgSpeed) : null,
     bestEfforts,
   };
 
@@ -257,7 +257,7 @@ ${Object.keys(bestEfforts).length > 0 ? Object.entries(bestEfforts).map(([d, t])
 ## Dernières courses significatives
 ${JSON.stringify(performances, null, 2)}
 
-Allure moyenne récente : ${avgSpeed > 0 ? formatPace(avgSpeed) : "N/A"}`;
+Allure moyenne récente : ${avgSpeed > 0 ? await formatPace(avgSpeed) : "N/A"}`;
 
   // Appeler Gemini
   const ai = new GoogleGenAI({ apiKey });

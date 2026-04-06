@@ -214,10 +214,10 @@ function compareSession(
   return changes;
 }
 
-export function computeVersionDiff(
+export async function computeVersionDiff(
   oldSnapshot: PlanSnapshot,
   newSnapshot: PlanSnapshot
-): VersionDiff {
+): Promise<VersionDiff> {
   const diff: VersionDiff = {
     sessionsAdded: 0,
     sessionsRemoved: 0,
@@ -401,7 +401,7 @@ export async function comparePlanVersions(
   return {
     versionA: { ...a, snapshot: snapshotA }, // Snapshots complets pour affichage
     versionB: { ...b, snapshot: snapshotB },
-    diff: computeVersionDiff(filteredSnapshotA, filteredSnapshotB), // Diff sans semaines passées
+    diff: await computeVersionDiff(filteredSnapshotA, filteredSnapshotB), // Diff sans semaines passées
   };
 }
 
