@@ -81,10 +81,15 @@ Réponds en français.`;
  */
 export async function analyzePhoto(
   imageBase64: string,
-  mimeType: string
+  mimeType: string,
+  userHint?: string
 ): Promise<PhotoAnalysisResult | { error: string }> {
   try {
     const ai = getAI();
+
+    const prompt = userHint
+      ? `${PHOTO_ANALYSIS_PROMPT}\n\nPrécisions de l'utilisateur sur ce repas : "${userHint}". Utilise ces informations pour affiner ton analyse (type d'aliment, ingrédients, préparation, etc.).`
+      : PHOTO_ANALYSIS_PROMPT;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-lite-preview",
@@ -92,7 +97,7 @@ export async function analyzePhoto(
         {
           role: "user",
           parts: [
-            { text: PHOTO_ANALYSIS_PROMPT },
+            { text: prompt },
             {
               inlineData: {
                 mimeType,

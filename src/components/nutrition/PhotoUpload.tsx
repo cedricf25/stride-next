@@ -35,6 +35,8 @@ export default function PhotoUpload({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [userHint, setUserHint] = useState("");
+
   const [analysisResult, setAnalysisResult] =
     useState<PhotoAnalysisResult | null>(null);
   const [editableFoods, setEditableFoods] = useState<FoodInput[]>([]);
@@ -120,7 +122,7 @@ export default function PhotoUpload({
     setError(null);
 
     try {
-      const result = await analyzePhoto(imageData, mimeType);
+      const result = await analyzePhoto(imageData, mimeType, userHint || undefined);
 
       if ("error" in result) {
         setError(result.error);
@@ -248,6 +250,21 @@ export default function PhotoUpload({
                 </Select>
               </FormField>
             </div>
+
+            {/* Précisions optionnelles */}
+            {!analysisResult && (
+              <div className="mt-4">
+                <FormField label="Précisions (optionnel)" htmlFor="userHint">
+                  <Input
+                    id="userHint"
+                    type="text"
+                    placeholder="Ex : c'est du skyr, viande blanche, sauce allégée..."
+                    value={userHint}
+                    onChange={(e) => setUserHint(e.target.value)}
+                  />
+                </FormField>
+              </div>
+            )}
 
             {/* Bouton analyser */}
             {!analysisResult && (
