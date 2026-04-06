@@ -1638,7 +1638,7 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
     workoutSummary?: string | null;
     elevationGain?: number | null;
     terrainType?: string | null;
-    exercises?: unknown;
+    exercises?: string | null;
     changeReason?: string | null;
   };
 
