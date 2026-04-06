@@ -1636,6 +1636,9 @@ Adapte la charge en fonction de la progression réelle du coureur et des activit
     targetHRZone?: string | null;
     intensity?: string;
     workoutSummary?: string | null;
+    elevationGain?: number | null;
+    terrainType?: string | null;
+    exercises?: unknown;
     changeReason?: string | null;
   };
 
