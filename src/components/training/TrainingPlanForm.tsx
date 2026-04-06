@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer } from "react";
+import { useReducer, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { generateTrainingPlan } from "@/actions/training-generate";
 import {
@@ -42,6 +42,20 @@ const weekDays = [
 export default function TrainingPlanForm() {
   const router = useRouter();
   const [state, dispatch] = useReducer(trainingPlanFormReducer, initialState);
+
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (state.loading) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [state.loading]);
 
   const freeDays = weekDays.filter((d) => !state.trainingDays.includes(d.value));
   const strengthCount = state.includeStrength ? Math.min(state.strengthFrequency, freeDays.length) : 0;
@@ -318,6 +332,20 @@ export default function TrainingPlanForm() {
         <Sparkles className="h-5 w-5" />
         {state.loading ? "Génération en cours..." : "Générer mon plan"}
       </Button>
+
+      {state.loading && (
+        <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 text-center">
+          <p className="text-sm font-medium text-[var(--accent)]">
+            Le modèle IA génère ton plan personnalisé...
+          </p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Cela peut prendre jusqu&apos;à 1-2 minutes. Merci de patienter.
+          </p>
+          <p className="mt-2 font-mono text-xs text-[var(--text-muted)]">
+            {Math.floor(elapsed / 60).toString().padStart(2, "0")}:{(elapsed % 60).toString().padStart(2, "0")}
+          </p>
+        </div>
+      )}
     </form>
   );
 }

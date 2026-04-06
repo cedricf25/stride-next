@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, CalendarClock } from "lucide-react";
 import { updateTrainingPlan } from "@/actions/training-update";
@@ -17,6 +17,19 @@ export default function UpdatePlanButton({ planId, currentStartDate }: Props) {
   const [showOptions, setShowOptions] = useState(false);
   const [startDate, setStartDate] = useState(currentStartDate ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isPending) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [isPending]);
 
   function handleUpdate() {
     startTransition(async () => {
@@ -76,6 +89,14 @@ export default function UpdatePlanButton({ planId, currentStartDate }: Props) {
             Annuler
           </Button>
         </div>
+        {isPending && (
+          <p className="mt-2 text-xs text-blue-500">
+            Le modèle IA analyse ton plan... Cela peut prendre 1-2 minutes.
+            <span className="ml-2 font-mono">
+              {Math.floor(elapsed / 60).toString().padStart(2, "0")}:{(elapsed % 60).toString().padStart(2, "0")}
+            </span>
+          </p>
+        )}
       </div>
     );
   }

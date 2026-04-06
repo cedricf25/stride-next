@@ -10,6 +10,7 @@ import PlanProgressWidget from "@/components/training/PlanProgressWidget";
 import { PageContainer, BackLink, LinkButton } from "@/components/shared";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 export default async function TrainingPlanPage({
   params,

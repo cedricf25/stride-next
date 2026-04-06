@@ -1,6 +1,8 @@
 import TrainingPlanForm from "@/components/training/TrainingPlanForm";
 import { PageContainer, BackLink } from "@/components/shared";
 
+export const maxDuration = 120;
+
 export default function NewTrainingPlanPage() {
   return (
     <PageContainer maxWidth="2xl">
