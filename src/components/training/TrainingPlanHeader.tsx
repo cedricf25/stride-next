@@ -70,7 +70,7 @@ export default function TrainingPlanHeader({ plan }: Props) {
         {plan.targetTime && (
           <span className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
-            Objectif : {plan.targetTime}
+            {plan.raceType === "trail" ? "Estimé" : "Objectif"} : {plan.targetTime}
           </span>
         )}
         <span className="capitalize">

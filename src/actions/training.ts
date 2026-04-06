@@ -459,6 +459,7 @@ Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
   "name": "string - nom du plan",
   "goalProbability": "number 0-100 basé sur le niveau actuel, l'objectif et le temps de préparation",
   "goalAssessment": "string - évaluation courte (2-3 phrases) de la faisabilité",
+  "estimatedTime": "string|null - OBLIGATOIRE pour trail : estimation réaliste du temps de course (ex: '5h30 - 6h15'). null pour les courses sur route si l'utilisateur a fourni un objectif chrono.",
   "weeks": [
     {
       "weekNumber": "number",
@@ -497,7 +498,7 @@ Règles spécifiques TRAIL (si raceType contient "trail") :
 - Inclus des séances spécifiques trail : côtes, descente technique, dénivelé positif soutenu
 - Le workoutSummary pour les séances de côtes doit mentionner la pente : ex "3×8' côte r=3' descente", "6×3' côte raide (>15%) r=descente"
 - targetPace en trail doit être adapté au terrain (plus lent en sentier technique qu'en chemin)
-- ESTIMATION DE TEMPS : en trail l'utilisateur ne fournit PAS d'objectif chrono. Tu DOIS estimer un temps cible réaliste dans "goalAssessment" en te basant sur : distance, D+, profil du coureur (VO2max, allure moyenne, poids), et le terrain. Utilise la formule indicative : ajoute environ 1 min/km par tranche de 100m D+/km en plus de l'allure route. Indique l'estimation sous la forme "Temps estimé : Xh XX - Xh XX" dans goalAssessment.`;
+- ESTIMATION DE TEMPS : en trail l'utilisateur ne fournit PAS d'objectif chrono. Tu DOIS renseigner le champ "estimatedTime" avec une fourchette réaliste (ex: "5h30 - 6h15") basée sur : distance, D+, profil du coureur (VO2max, allure moyenne, poids). Formule indicative : ajoute environ 1 min/km par tranche de 100m D+/km en plus de l'allure route.`;
 }
 
 function getUpdateSystemPrompt(planningMode: "time" | "distance"): string {
@@ -530,9 +531,9 @@ Le seul critère de modification est l'état de fatigue/forme de l'athlète :
 
 Réponds UNIQUEMENT en JSON valide (pas de markdown), avec cette structure :
 {
-  "name": "string",
-  "goalProbability": "number 0-100",
-  "goalAssessment": "string",
+  "name": "string - IDENTIQUE au plan existant",
+  "goalProbability": "number 0-100 - CONSERVE la valeur existante sauf si la fatigue change significativement la probabilité",
+  "goalAssessment": "string - CONSERVE le texte existant sauf si la fatigue justifie une mise à jour",
   "weeks": [
     {
       "weekNumber": "number",
@@ -735,6 +736,7 @@ RAPPEL FINAL : génère les ${totalWeeks} semaines complètes (de la semaine 1 �
       name: generated.name || plan.name,
       goalProbability: generated.goalProbability ?? null,
       goalAssessment: generated.goalAssessment ?? null,
+      ...(generated.estimatedTime ? { targetTime: generated.estimatedTime } : {}),
     },
   });
 
@@ -1553,6 +1555,9 @@ ${plan.targetTime ? `- Objectif chrono : ${plan.targetTime}` : ""}
 ${plan.raceDate ? `- Date de course : ${new Date(plan.raceDate).toLocaleDateString("fr-FR")}` : ""}
 - Jours de course : ${plan.trainingDays ? JSON.parse(plan.trainingDays).join(", ") : `${plan.daysPerWeek} jours/semaine`}
 - Jour de sortie longue : ${plan.longRunDay}
+- goalProbability actuel : ${plan.goalProbability ?? "N/A"}
+- goalAssessment actuel : ${plan.goalAssessment ?? "N/A"}
+${plan.targetTime ? `- Objectif/estimation chrono : ${plan.targetTime}` : ""}
 
 Semaines passées (pour contexte, NE PAS régénérer) :
 ${JSON.stringify(completedSummary, null, 2)}
@@ -1977,8 +1982,8 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
   const newSnapshot: PlanSnapshot = {
     versionNumber: newVersionNumber,
     createdAt: new Date().toISOString(),
-    goalProbability: generated.goalProbability ?? null,
-    goalAssessment: generated.goalAssessment ?? null,
+    goalProbability: generated.goalProbability ?? plan.goalProbability ?? null,
+    goalAssessment: generated.goalAssessment ?? plan.goalAssessment ?? null,
     weeks: allWeeksSnapshot,
     deletedSessions: deletedSessions.length > 0 ? deletedSessions : undefined,
   };
@@ -2021,12 +2026,13 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
   });
 
   // Update plan with new version number, goal data, and lastUpdatedAt
+  // Conserver les valeurs existantes si Gemini ne les renvoie pas
   await prisma.trainingPlan.update({
     where: { id: plan.id },
     data: {
       currentVersion: newVersionNumber,
-      goalProbability: generated.goalProbability ?? null,
-      goalAssessment: generated.goalAssessment ?? null,
+      ...(generated.goalProbability != null ? { goalProbability: generated.goalProbability } : {}),
+      ...(generated.goalAssessment ? { goalAssessment: generated.goalAssessment } : {}),
       lastUpdatedAt: now,
       ...(startDate ? { startDate: new Date(startDate) } : {}),
     },
