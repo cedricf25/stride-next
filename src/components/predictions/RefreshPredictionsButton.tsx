@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
-import { generatePredictions } from "@/actions/predictions";
+import { generatePredictions } from "@/actions/predictions-generate";
 import { Button } from "@/components/shared";
 
 export default function RefreshPredictionsButton() {

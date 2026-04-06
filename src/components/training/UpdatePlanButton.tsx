@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, CalendarClock } from "lucide-react";
-import { updateTrainingPlan } from "@/actions/training";
+import { updateTrainingPlan } from "@/actions/training-update";
 import { Button } from "@/components/shared";
 
 interface Props {

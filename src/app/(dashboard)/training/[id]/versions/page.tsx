@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { fetchTrainingPlan, fetchPlanVersions } from "@/actions/training";
+import { fetchTrainingPlan } from "@/actions/training";
+import { fetchPlanVersions } from "@/actions/training-versions";
 import { BackLink } from "@/components/shared";
 import { VersionCompareClient } from "@/components/training/versioning";
 

@@ -1,5 +1,5 @@
 import { fetchSleepHistory } from "@/actions/health";
-import { fetchSleepAnalysis } from "@/actions/gemini";
+import { fetchSleepAnalysis } from "@/actions/gemini-health";
 import SleepChart from "@/components/health/SleepChart";
 import SleepAiAnalysis from "@/components/health/SleepAiAnalysis";
 import { PageContainer, BackLink, DataTable } from "@/components/shared";

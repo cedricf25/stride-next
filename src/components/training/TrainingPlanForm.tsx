@@ -2,7 +2,7 @@
 
 import { useReducer } from "react";
 import { useRouter } from "next/navigation";
-import { generateTrainingPlan } from "@/actions/training";
+import { generateTrainingPlan } from "@/actions/training-generate";
 import {
   trainingPlanFormReducer,
   initialState,

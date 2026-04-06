@@ -10,7 +10,7 @@ import {
   restorePlanVersion,
   deletePlanVersion,
   setDefaultVersion,
-} from "@/actions/training";
+} from "@/actions/training-versions";
 import { Card } from "@/components/shared";
 import type { VersionSummary, VersionDiff, PlanSnapshot } from "@/types/training-version";
 

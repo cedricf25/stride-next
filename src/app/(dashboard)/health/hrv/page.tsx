@@ -1,5 +1,5 @@
 import { fetchSleepHistory } from "@/actions/health";
-import { fetchHrvAnalysis } from "@/actions/gemini";
+import { fetchHrvAnalysis } from "@/actions/gemini-health";
 import HrvChart from "@/components/health/HrvChart";
 import HrvAiAnalysis from "@/components/health/HrvAiAnalysis";
 import { PageContainer, BackLink, DataTable } from "@/components/shared";

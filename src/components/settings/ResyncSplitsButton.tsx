@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
-import { resyncAllSplits } from "@/actions/sync";
+import { resyncAllSplits } from "@/actions/sync-health";
 
 export default function ResyncSplitsButton() {
   const [isLoading, setIsLoading] = useState(false);

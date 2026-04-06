@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { Sparkles, RefreshCw, Calendar } from "lucide-react";
-import { fetchSleepAnalysis, generateSleepAnalysis, type HealthAnalysisResult } from "@/actions/gemini";
+import { fetchSleepAnalysis, generateSleepAnalysis, type HealthAnalysisResult } from "@/actions/gemini-health";
 import MarkdownContent from "@/components/MarkdownContent";
 import { SectionHeader, Button, AlertBanner, Card } from "@/components/shared";
 

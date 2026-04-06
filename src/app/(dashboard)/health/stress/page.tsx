@@ -1,5 +1,5 @@
 import { fetchSleepHistory, fetchHealthHistory } from "@/actions/health";
-import { fetchStressAnalysis } from "@/actions/gemini";
+import { fetchStressAnalysis } from "@/actions/gemini-health";
 import StressChart from "@/components/health/StressChart";
 import DailyStressChart from "@/components/health/DailyStressChart";
 import StressAiAnalysis from "@/components/health/StressAiAnalysis";
