@@ -16,7 +16,7 @@ interface Props {
     goalProbability: number | null;
     goalAssessment: string | null;
     currentVersion: number;
-    weeks: { sessions: { completed: boolean }[] }[];
+    weeks: { sessions: { completed: boolean; missed: boolean; sessionType: string }[] }[];
   };
 }
 
