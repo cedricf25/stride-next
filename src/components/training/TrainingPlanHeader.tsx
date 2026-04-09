@@ -22,11 +22,11 @@ interface Props {
 
 export default function TrainingPlanHeader({ plan }: Props) {
   const totalSessions = plan.weeks.reduce(
-    (sum, w) => sum + w.sessions.length,
+    (sum, w) => sum + w.sessions.filter((s) => s.sessionType !== "rest").length,
     0
   );
   const completedSessions = plan.weeks.reduce(
-    (sum, w) => sum + w.sessions.filter((s) => s.completed).length,
+    (sum, w) => sum + w.sessions.filter((s) => s.completed && !s.missed && s.sessionType !== "rest").length,
     0
   );
   const progress =

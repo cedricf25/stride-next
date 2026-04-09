@@ -143,8 +143,10 @@ export default function TrainingWeekCard({ week, planId, planStartDate, planning
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const completed = week.sessions.filter((s) => s.completed).length;
-  const total = week.sessions.length;
+  const nonRest = week.sessions.filter((s) => s.sessionType !== "rest");
+  const completed = nonRest.filter((s) => s.completed && !s.missed).length;
+  const missed = nonRest.filter((s) => s.missed).length;
+  const total = nonRest.length;
 
   // Jours utilisés dans cette semaine, triés par ordre original
   const usedDays = [...week.sessions]
@@ -201,6 +203,7 @@ export default function TrainingWeekCard({ week, planId, planStartDate, planning
           )}
           <span>
             {completed}/{total} séances
+            {missed > 0 && <span className="ml-1 text-red-500">({missed} loupé{missed > 1 ? "s" : ""})</span>}
           </span>
         </div>
       </button>

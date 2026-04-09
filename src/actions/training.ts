@@ -1,7 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/user";
+import { getSessionDate } from "@/lib/training-utils";
 
 // ============================================================================
 // TRAINING PLAN TYPES
@@ -76,8 +78,31 @@ export async function toggleSessionCompleted(sessionId: string) {
 
   await prisma.trainingSession.update({
     where: { id: sessionId },
-    data: { completed: !session.completed },
+    data: {
+      completed: !session.completed,
+      // Si on décoche completed, on enlève aussi missed
+      ...(session.completed ? { missed: false } : {}),
+    },
   });
+  revalidatePath("/training", "layout");
+}
+
+export async function toggleSessionMissed(sessionId: string) {
+  const session = await prisma.trainingSession.findUnique({
+    where: { id: sessionId },
+  });
+  if (!session) return;
+
+  const newMissed = !session.missed;
+  await prisma.trainingSession.update({
+    where: { id: sessionId },
+    data: {
+      missed: newMissed,
+      // Si on marque comme loupé, on décoche completed ; si on enlève loupé, on remet completed (si activité liée)
+      completed: newMissed ? false : !!session.linkedActivityId,
+    },
+  });
+  revalidatePath("/training", "layout");
 }
 
 export async function fetchNextSession() {
@@ -150,8 +175,8 @@ export async function fetchNextSession() {
 
     for (const week of plan.weeks) {
       for (const session of week.sessions) {
-        // Ignorer les séances complétées et les jours de repos
-        if (session.completed || session.sessionType === "rest") continue;
+        // Ignorer les séances complétées, loupées et les jours de repos
+        if (session.completed || session.missed || session.sessionType === "rest") continue;
 
         const sessionDate = calcSessionDate(plan.startDate, week.weekNumber, session.dayOfWeek);
         sessionDate.setHours(0, 0, 0, 0);
@@ -237,17 +262,6 @@ export async function deleteTrainingPlan(planId: string) {
 // ACTIVITY-PLAN MATCHING
 // ============================================================================
 
-// Mapping jour de la semaine français → numéro (lundi = 1, dimanche = 7)
-const dayOfWeekMap: Record<string, number> = {
-  lundi: 1,
-  mardi: 2,
-  mercredi: 3,
-  jeudi: 4,
-  vendredi: 5,
-  samedi: 6,
-  dimanche: 7,
-};
-
 // Mapping type de séance → types d'activité compatibles
 const sessionTypeCompatibility: Record<string, string[]> = {
   easy: ["running", "trail_running", "track_running"],
@@ -257,20 +271,6 @@ const sessionTypeCompatibility: Record<string, string[]> = {
   long_run: ["running", "trail_running", "track_running"],
   rest: [], // pas de matching pour les jours de repos
 };
-
-function getSessionDate(
-  planStartDate: Date,
-  weekNumber: number,
-  dayOfWeek: string
-): Date {
-  const dayNum = dayOfWeekMap[dayOfWeek.toLowerCase()] ?? 1;
-  const date = new Date(planStartDate);
-  // Semaine 1 commence à planStartDate, on ajuste au bon jour
-  const startDayOfWeek = date.getDay() === 0 ? 7 : date.getDay(); // getDay: 0=dim, 1=lun...
-  const daysToAdd = (weekNumber - 1) * 7 + (dayNum - startDayOfWeek);
-  date.setDate(date.getDate() + daysToAdd);
-  return date;
-}
 
 function isSameDay(d1: Date, d2: Date): boolean {
   // Comparer les dates en format local YYYY-MM-DD pour éviter les décalages de timezone
@@ -413,6 +413,54 @@ export async function matchActivitiesToPlans() {
 // ============================================================================
 // SESSION OPERATIONS
 // ============================================================================
+
+/**
+ * Marque comme "missed" les sessions passées (avant hier) qui ne sont ni
+ * complétées ni liées à une activité. Appelé après matchActivitiesToPlans
+ * lors de la synchronisation Garmin.
+ */
+export async function autoMarkMissedSessions() {
+  const user = await getAuthenticatedUser();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(23, 59, 59, 999);
+
+  const plans = await prisma.trainingPlan.findMany({
+    where: { userId: user.id, status: "active" },
+    include: {
+      weeks: {
+        include: { sessions: true },
+        orderBy: { weekNumber: "asc" },
+      },
+    },
+  });
+
+  let markedCount = 0;
+
+  for (const plan of plans) {
+    if (!plan.startDate) continue;
+
+    for (const week of plan.weeks) {
+      for (const session of week.sessions) {
+        // Skip sessions déjà traitées (complétées, loupées, repos, ou liées)
+        if (session.completed || session.missed || session.sessionType === "rest" || session.linkedActivityId) continue;
+
+        const sessionDate = getSessionDate(plan.startDate, week.weekNumber, session.dayOfWeek);
+
+        // Si la session est dans le passé (avant hier soir)
+        if (sessionDate <= yesterday) {
+          await prisma.trainingSession.update({
+            where: { id: session.id },
+            data: { missed: true },
+          });
+          markedCount++;
+        }
+      }
+    }
+  }
+
+  return { marked: markedCount };
+}
 
 export async function updateSessionDisplayMode(
   sessionId: string,

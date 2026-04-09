@@ -30,7 +30,8 @@ export default function PlanProgressWidget({ weeks }: Props) {
   const allSessions = weeks.flatMap((w) => w.sessions);
   const nonRestSessions = allSessions.filter((s) => s.sessionType !== "rest");
 
-  const completedSessions = nonRestSessions.filter((s) => s.completed);
+  const completedSessions = nonRestSessions.filter((s) => s.completed && !s.missed);
+  const missedSessions = nonRestSessions.filter((s) => s.missed);
   const linkedSessions = nonRestSessions.filter((s) => s.linkedActivityId);
 
   // Volume planifié vs réalisé
@@ -81,6 +82,9 @@ export default function PlanProgressWidget({ weeks }: Props) {
             <span className="text-[var(--text-secondary)]">Séances complétées</span>
             <span className="font-medium text-[var(--text-primary)]">
               {completedSessions.length}/{nonRestSessions.length}
+              {missedSessions.length > 0 && (
+                <span className="ml-1 text-red-500">({missedSessions.length} loupé{missedSessions.length > 1 ? "s" : ""})</span>
+              )}
             </span>
           </div>
           <ProgressBar value={completionRate} />
@@ -146,7 +150,7 @@ export default function PlanProgressWidget({ weeks }: Props) {
           <div className="grid grid-cols-2 gap-2 text-xs">
             {["easy", "tempo", "interval", "long_run"].map((type) => {
               const sessionsOfType = nonRestSessions.filter((s) => s.sessionType === type);
-              const completedOfType = sessionsOfType.filter((s) => s.completed);
+              const completedOfType = sessionsOfType.filter((s) => s.completed && !s.missed);
               if (sessionsOfType.length === 0) return null;
               return (
                 <div

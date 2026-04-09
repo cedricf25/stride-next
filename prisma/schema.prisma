@@ -416,6 +416,7 @@ model TrainingSession {
   terrainType     String?  // "route", "chemin", "sentier technique", "montagne", etc.
   exercises       String?  @db.Text // JSON array d'exercices pour séances strength
   completed       Boolean  @default(false)
+  missed          Boolean  @default(false)
 
   // Lien vers l'activité réelle correspondante
   linkedActivityId  String?   @unique

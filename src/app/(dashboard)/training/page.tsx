@@ -67,12 +67,12 @@ export default async function TrainingPage() {
         <div className="space-y-4">
           {plans.map((plan) => {
             const totalSessions = plan.weeks.reduce(
-              (sum, w) => sum + w.sessions.length,
+              (sum, w) => sum + w.sessions.filter((s) => s.sessionType !== "rest").length,
               0
             );
             const completedSessions = plan.weeks.reduce(
               (sum, w) =>
-                sum + w.sessions.filter((s) => s.completed).length,
+                sum + w.sessions.filter((s) => s.completed && !s.missed && s.sessionType !== "rest").length,
               0
             );
 

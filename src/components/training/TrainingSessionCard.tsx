@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, MoreVertical, Clock, Ruler, Upload, Loader2, Mountain, TreePine, ChevronDown, ChevronRight, Play } from "lucide-react";
-import { toggleSessionCompleted, updateSessionDisplayMode } from "@/actions/training";
+import { ExternalLink, MoreVertical, Clock, Ruler, Upload, Loader2, Mountain, TreePine, ChevronDown, ChevronRight, Play, X } from "lucide-react";
+import { toggleSessionCompleted, toggleSessionMissed, updateSessionDisplayMode } from "@/actions/training";
 import { exportSessionToGarmin } from "@/actions/garmin-export";
 
 interface LinkedActivity {
@@ -35,6 +35,7 @@ interface Props {
     terrainType: string | null;
     exercises: string | null;
     completed: boolean;
+    missed: boolean;
     linkedActivityId: string | null;
     linkedActivity: LinkedActivity | null;
     matchScore: number | null;
@@ -136,7 +137,15 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [exercisesOpen, setExercisesOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [optimisticCompleted, setOptimisticCompleted] = useState(session.completed);
+  const [optimisticMissed, setOptimisticMissed] = useState(session.missed);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Sync optimistic state with props when server data arrives
+  useEffect(() => {
+    setOptimisticCompleted(session.completed);
+    setOptimisticMissed(session.missed);
+  }, [session.completed, session.missed]);
 
   const colorClass = typeColors[session.sessionType] ?? "border-l-[var(--border-default)] bg-[var(--bg-surface-hover)]";
   const activity = session.linkedActivity;
@@ -158,7 +167,19 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
   }, [menuOpen]);
 
   async function handleToggle() {
+    const newCompleted = !optimisticCompleted;
+    setOptimisticCompleted(newCompleted);
+    if (optimisticMissed && newCompleted) setOptimisticMissed(false);
     await toggleSessionCompleted(session.id);
+    router.refresh();
+  }
+
+  async function handleToggleMissed() {
+    const newMissed = !optimisticMissed;
+    setOptimisticMissed(newMissed);
+    if (newMissed) setOptimisticCompleted(false);
+    setMenuOpen(false);
+    await toggleSessionMissed(session.id);
     router.refresh();
   }
 
@@ -190,28 +211,35 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
   return (
     <div
       className={`flex items-start gap-3 rounded-lg border-l-4 px-4 py-3 ${colorClass} ${
-        session.completed ? "opacity-60" : ""
+        optimisticCompleted || optimisticMissed ? "opacity-60" : ""
       }`}
     >
-      <button
-        onClick={handleToggle}
-        className={`-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${
-          session.completed ? "" : "hover:bg-[var(--bg-surface)]"
-        }`}
-        aria-label={session.completed ? "Marquer comme non complété" : "Marquer comme complété"}
-      >
-        <span className={`flex h-5 w-5 items-center justify-center rounded border ${
-          session.completed
-            ? "border-green-500 bg-green-500 text-white"
-            : "border-[var(--border-default)] bg-[var(--bg-surface)]"
-        }`}>
-          {session.completed && (
-            <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </span>
-      </button>
+      {session.sessionType !== "rest" && (
+        <button
+          onClick={handleToggle}
+          className={`-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${
+            optimisticCompleted || optimisticMissed ? "" : "hover:bg-[var(--bg-surface)]"
+          }`}
+          aria-label={optimisticCompleted ? "Marquer comme non complété" : optimisticMissed ? "Marquer comme complété" : "Marquer comme complété"}
+        >
+          <span className={`flex h-5 w-5 items-center justify-center rounded border ${
+            optimisticMissed
+              ? "border-red-500 bg-red-500 text-white"
+              : optimisticCompleted
+                ? "border-green-500 bg-green-500 text-white"
+                : "border-[var(--border-default)] bg-[var(--bg-surface)]"
+          }`}>
+            {optimisticCompleted && (
+              <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+            {optimisticMissed && (
+              <X className="h-3 w-3" />
+            )}
+          </span>
+        </button>
+      )}
 
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap">
@@ -260,8 +288,15 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
             </span>
           )}
         </div>
-        <p className={`text-sm font-medium ${session.completed ? "text-[var(--text-tertiary)] line-through" : "text-[var(--text-primary)]"}`}>
+        <p className={`text-sm font-medium ${
+          optimisticMissed
+            ? "text-red-400 line-through"
+            : optimisticCompleted
+              ? "text-[var(--text-tertiary)] line-through"
+              : "text-[var(--text-primary)]"
+        }`}>
           {session.title}
+          {optimisticMissed && <span className="ml-1.5 text-[10px] font-normal text-red-500 no-underline">loupé</span>}
         </p>
         <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">{session.description}</p>
 
@@ -477,6 +512,14 @@ export default function TrainingSessionCard({ session, planningMode }: Props) {
                   <Ruler className="h-4 w-4" />
                   Distance
                   {effectiveMode === "distance" && <span className="ml-auto text-xs">✓</span>}
+                </button>
+                <div className="my-1 border-t border-[var(--border-default)]" />
+                <button
+                  onClick={handleToggleMissed}
+                  className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] min-h-[44px]"
+                >
+                  <X className="h-4 w-4" />
+                  {optimisticMissed ? "Retirer loupé" : "Marquer comme loupé"}
                 </button>
                 <div className="my-1 border-t border-[var(--border-default)]" />
                 <button

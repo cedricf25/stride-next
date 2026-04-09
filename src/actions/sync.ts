@@ -3,7 +3,7 @@
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser, getAuthenticatedGarminClient } from "@/lib/user";
-import { matchActivitiesToPlans } from "./training";
+import { matchActivitiesToPlans, autoMarkMissedSessions } from "./training";
 import { syncSleepData, syncHealthMetrics, syncUserProfile } from "./sync-health";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -294,6 +294,7 @@ export async function syncAll() {
     sleep: { synced: 0 },
     health: { synced: 0 },
     matching: { matched: 0 },
+    missed: { marked: 0 },
   };
 
   try {
@@ -330,6 +331,14 @@ export async function syncAll() {
   } catch (e) {
     if (isRedirectError(e)) throw e;
     console.error("matchActivitiesToPlans failed:", e);
+  }
+
+  // Auto-mark past unmatched sessions as missed
+  try {
+    results.missed = await autoMarkMissedSessions();
+  } catch (e) {
+    if (isRedirectError(e)) throw e;
+    console.error("autoMarkMissedSessions failed:", e);
   }
 
   // Update last sync timestamp

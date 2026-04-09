@@ -246,6 +246,19 @@ export async function updateTrainingPlan(
   if (skipAdaptationAnalysis) {
     newActivitiesSummary = `\n⏳ MISE À JOUR RÉCENTE : Le plan a été mis à jour il y a moins de 5 minutes. Pour éviter les doubles ajustements, AUCUNE modification basée sur les activités récentes ne sera appliquée. Conserve le plan EXACTEMENT tel quel.\n`;
   } else if (newActivitiesSummary) {
+    // Ajouter les séances loupées récentes
+    const missedSessions = plan.weeks
+      .flatMap((w) => w.sessions.map((s) => ({ ...s, weekNumber: w.weekNumber })))
+      .filter((s) => s.missed);
+
+    if (missedSessions.length > 0) {
+      newActivitiesSummary += `\nSÉANCES LOUPÉES (${missedSessions.length}) :\n`;
+      for (const s of missedSessions) {
+        newActivitiesSummary += `- Semaine ${s.weekNumber} (${s.dayOfWeek}) : ${s.title} (${s.sessionType}) — ${s.distance ? s.distance + "km" : ""} ${s.duration ? s.duration + "min" : ""}\n`;
+      }
+      newActivitiesSummary += `\nPRISE EN COMPTE : les séances loupées indiquent un possible manque de disponibilité ou une surcharge. Adapte le volume et l'intensité des prochaines séances en conséquence (rattraper progressivement, NE PAS compenser en une seule séance).\n`;
+    }
+
     newActivitiesSummary += "\nADAPTE LE PLAN en fonction de ces observations : si l'athlète est en surcharge, allège les jours suivants ; si les séances sont trop faciles, augmente progressivement.";
   }
 
@@ -253,34 +266,40 @@ export async function updateTrainingPlan(
   const completedSummary = completedWeeks.map((w) => ({
     weekNumber: w.weekNumber,
     theme: w.theme,
-    sessions: w.sessions.map((s) => ({
-      type: s.sessionType,
-      title: s.title,
-      completed: s.completed,
-      distance: s.distance,
-      duration: s.duration,
-    })),
+    sessions: w.sessions
+      .filter((s) => s.sessionType !== "rest")
+      .map((s) => ({
+        type: s.sessionType,
+        title: s.title,
+        completed: s.completed,
+        missed: s.missed,
+        distance: s.distance,
+        duration: s.duration,
+      })),
   }));
 
   // JSON compact des semaines existantes (sans indentation pour réduire tokens)
+  // Filtrer les sessions rest (jours sans séance = repos implicite)
   const existingWeeksJSON = JSON.stringify(weeksToDelete.map((w) => ({
     weekNumber: w.weekNumber,
     theme: w.theme,
     totalVolume: w.totalVolume,
-    sessions: w.sessions.map((s) => ({
-      dayOfWeek: s.dayOfWeek,
-      sessionType: s.sessionType,
-      title: s.title,
-      distance: s.distance,
-      duration: s.duration,
-      targetPace: s.targetPace,
-      targetHRZone: s.targetHRZone,
-      intensity: s.intensity,
-      workoutSummary: s.workoutSummary,
-      elevationGain: s.elevationGain,
-      terrainType: s.terrainType,
-      exercises: s.exercises ? JSON.parse(s.exercises) : null,
-    })),
+    sessions: w.sessions
+      .filter((s) => s.sessionType !== "rest")
+      .map((s) => ({
+        dayOfWeek: s.dayOfWeek,
+        sessionType: s.sessionType,
+        title: s.title,
+        distance: s.distance,
+        duration: s.duration,
+        targetPace: s.targetPace,
+        targetHRZone: s.targetHRZone,
+        intensity: s.intensity,
+        workoutSummary: s.workoutSummary,
+        elevationGain: s.elevationGain,
+        terrainType: s.terrainType,
+        exercises: s.exercises ? JSON.parse(s.exercises) : null,
+      })),
   })));
 
   // Résumé des activités passées pour le backfill
@@ -476,6 +495,18 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
     }>;
   };
 
+  // Validation de sécurité : vérifier que l'IA a retourné suffisamment de sessions
+  const existingSessionCount = weeksToDelete.reduce((sum, w) => sum + w.sessions.filter(s => s.sessionType !== "rest").length, 0);
+  const generatedSessionCount = (generated.weeks ?? []).reduce(
+    (sum, w) => sum + (w.sessions ?? []).filter(s => (s.sessionType ?? "easy") !== "rest").length, 0
+  );
+
+  // Si l'IA retourne moins de 50% des sessions existantes, abort
+  if (existingSessionCount > 0 && generatedSessionCount < existingSessionCount * 0.5) {
+    console.error(`AI returned too few sessions: ${generatedSessionCount} vs ${existingSessionCount} existing. Aborting update.`);
+    return { planId: plan.id };
+  }
+
   // Index des séances explicitement supprimées par l'IA (avec justification)
   const deletionsMap = new Map<string, string>();
   if (Array.isArray(generated.sessionsToDelete)) {
@@ -589,17 +620,18 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
     };
   };
 
-  // Sauvegarder les liens activité-session AVANT suppression
-  // Clé : "weekNumber-dayOfWeek" → { linkedActivityId, matchScore, completed }
-  const savedLinks = new Map<string, { linkedActivityId: string; matchScore: number | null; completed: boolean }>();
+  // Sauvegarder les liens activité-session et statuts AVANT suppression
+  // Clé : "weekNumber-dayOfWeek" → { linkedActivityId, matchScore, completed, missed }
+  const savedLinks = new Map<string, { linkedActivityId: string | null; matchScore: number | null; completed: boolean; missed: boolean }>();
   for (const week of weeksToDelete) {
     for (const session of week.sessions) {
-      if (session.linkedActivityId) {
+      if (session.linkedActivityId || session.missed) {
         const key = `${week.weekNumber}-${session.dayOfWeek.toLowerCase()}`;
         savedLinks.set(key, {
           linkedActivityId: session.linkedActivityId,
           matchScore: session.matchScore,
           completed: session.completed,
+          missed: session.missed,
         });
       }
     }
@@ -642,7 +674,9 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
       let sessionIndex = 0;
 
       if (Array.isArray(week.sessions)) {
-        for (const genSession of week.sessions) {
+        // Filtrer les sessions rest — les jours sans séance sont implicitement repos
+        const nonRestSessions = week.sessions.filter((s) => (s.sessionType ?? "easy") !== "rest");
+        for (const genSession of nonRestSessions) {
           // Normaliser exercises (l'IA peut renvoyer un tableau d'objets au lieu d'un string)
           const normalizedSession: MergedSession = {
             ...genSession,
@@ -763,6 +797,7 @@ Ajuste UNIQUEMENT en fonction de la fatigue observée. En l'absence de signal de
               linkedActivityId: saved.linkedActivityId,
               matchScore: saved.matchScore,
               completed: saved.completed,
+              missed: saved.missed,
             },
           });
         }
