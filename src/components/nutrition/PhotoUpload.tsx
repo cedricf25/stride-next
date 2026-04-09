@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, X, Sparkles, Save, Edit3 } from "lucide-react";
+import { Camera, ImagePlus, X, Sparkles, Save, Edit3 } from "lucide-react";
 import { analyzePhoto, createMealFromPhoto } from "@/actions/nutrition-ai";
 import {
   Card,
@@ -26,6 +26,7 @@ export default function PhotoUpload({
 }: PhotoUploadProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [imageData, setImageData] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("image/jpeg");
@@ -195,17 +196,40 @@ export default function PhotoUpload({
       {/* Zone d'upload */}
       {!imageData ? (
         <Card padding="lg">
-          <div
-            className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-[var(--border-default)] rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-[var(--border-default)] rounded-lg">
             <Camera className="h-12 w-12 text-[var(--text-muted)] mb-4" />
             <p className="text-[var(--text-primary)] font-medium mb-1">
               Prends une photo de ton repas
             </p>
-            <p className="text-sm text-[var(--text-muted)]">
-              ou clique pour sélectionner une image
+            <p className="text-sm text-[var(--text-muted)] mb-6">
+              ou sélectionne une image depuis ta galerie
             </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+              >
+                <Camera className="h-4 w-4" />
+                Caméra
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors font-medium text-sm"
+              >
+                <ImagePlus className="h-4 w-4" />
+                Galerie
+              </button>
+            </div>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              className="hidden"
+            />
             <input
               ref={fileInputRef}
               type="file"
