@@ -52,6 +52,7 @@ interface Session {
   terrainType: string | null;
   exercises: string | null;
   completed: boolean;
+  missed: boolean;
   linkedActivityId: string | null;
   linkedActivity: LinkedActivity | null;
   matchScore: number | null;
