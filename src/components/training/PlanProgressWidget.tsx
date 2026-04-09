@@ -6,6 +6,7 @@ interface Session {
   distance: number | null;
   duration: number | null;
   completed: boolean;
+  missed: boolean;
   linkedActivityId: string | null;
   linkedActivity: {
     distance: number;
